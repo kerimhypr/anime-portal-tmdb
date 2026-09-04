@@ -18,7 +18,7 @@ export default function ForumDetailClient() {
   const [loading, setLoading] = useState(true);
   const handleLikeReply = async (replyId:string) => {
     if(!user) return alert("Giriş yap");
-    await likeReply(id as string, replyId);
+    await likeReply(id as string, replyId, user.uid);
   };
 
   useEffect(() => {
@@ -30,8 +30,12 @@ export default function ForumDetailClient() {
 
   const handleLike = async () => {
     if (!user) return alert("Giriş yap");
-    await likeThread(id as string);
-    setThread((prev:any)=> ({...prev, likes: (prev.likes||0)+1}));
+    const nowLiked = await likeThread(id as string, user.uid);
+    setThread((prev:any)=> ({
+      ...prev,
+      likes: nowLiked ? (prev.likes||0)+1 : Math.max(0,(prev.likes||0)-1),
+      likedBy: nowLiked ? [...(prev.likedBy||[]), user.uid] : (prev.likedBy||[]).filter((x:string)=> x!==user.uid)
+    }));
   };
   const handleReply = async () => {
     if (!text.trim()) return;
@@ -62,7 +66,10 @@ export default function ForumDetailClient() {
             <h1 className="text-xl font-black leading-tight mt-1">{thread.title}</h1>
             <p className="text-sm text-[#49454F] dark:text-[#CAC4D0] mt-3 whitespace-pre-wrap leading-relaxed">{thread.content}</p>
             <div className="flex gap-2 mt-4">
-              <button onClick={handleLike} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] hover:bg-[#EADDFF] text-sm font-medium"><Heart className="w-4 h-4"/> {thread.likes||0} Beğen</button>
+              {(() => {
+                const isLiked = !!thread.likedBy?.includes(user?.uid);
+                return <button onClick={handleLike} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition ${isLiked ? "bg-[#6750A4] text-white border-[#6750A4]" : "bg-white dark:bg-[#211F26] border-[#E7E0EC] dark:border-[#49454F] hover:bg-[#EADDFF]"}`}><Heart className={`w-4 h-4 ${isLiked ? "fill-white" : ""}`}/> {thread.likes||0} {isLiked ? "Beğendin ✓" : "Beğen"}</button>;
+              })()}
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm border"><MessageSquare className="w-4 h-4"/> {replies.length} yanıt</span>
             </div>
           </div>
@@ -79,7 +86,10 @@ export default function ForumDetailClient() {
                       <div className="flex items-center gap-2"><span className="text-sm font-bold">{r.author?.displayName}</span><span className="text-xs bg-[#E8DEF8] dark:bg-[#4F378B] text-[#21005D] dark:text-white px-2 py-0.5 rounded-full">Lv.1</span><span className="text-xs text-[#79747E]">{new Date(r.createdAt).toLocaleString("tr-TR")}</span></div>
                       <div className="text-sm mt-1.5 leading-relaxed whitespace-pre-wrap">{r.content}</div>
                       <div className="flex items-center gap-3 mt-2">
-                        <button onClick={()=> handleLikeReply(r.id)} className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF]"><Heart className="w-3 h-3"/> {r.likes||0} Beğen</button>
+                        {(() => {
+                          const isLiked = !!r.likedBy?.includes(user?.uid);
+                          return <button onClick={()=> handleLikeReply(r.id)} className={`text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full border ${isLiked ? "bg-[#6750A4] text-white border-[#6750A4]" : "bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] border-transparent"}`}><Heart className={`w-3 h-3 ${isLiked ? "fill-white" : ""}`}/> {r.likes||0} {isLiked ? "✓" : "Beğen"}</button>;
+                        })()}
                         <button onClick={()=> { setReplyTo(r.id); setReplyToName(r.author?.displayName||r.author?.username); setTimeout(()=> document.getElementById("reply-input-detail")?.focus(),50);}} className="text-xs font-semibold text-[#6750A4] hover:underline inline-flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Yanıtla</button>
                       </div>
                     </div>
@@ -93,7 +103,10 @@ export default function ForumDetailClient() {
                               <div className="flex items-center gap-1.5"><span className="text-xs font-bold">{child.author?.displayName}</span><span className="text-[11px] text-[#79747E]">{new Date(child.createdAt).toLocaleString("tr-TR")}</span></div>
                               <div className="text-xs mt-1 whitespace-pre-wrap leading-relaxed"><span className="text-[#6750A4] font-semibold">@{r.author?.username} </span>{child.content}</div>
                               <div className="flex items-center gap-2 mt-1.5">
-                                <button onClick={()=> handleLikeReply(child.id)} className="text-[11px] inline-flex items-center gap-1 text-[#49454F] hover:text-[#6750A4]"><Heart className="w-3 h-3"/> {child.likes||0}</button>
+                                {(() => {
+                                  const isLiked = !!child.likedBy?.includes(user?.uid);
+                                  return <button onClick={()=> handleLikeReply(child.id)} className={`text-[11px] inline-flex items-center gap-1 px-2 py-0.5 rounded-full border ${isLiked ? "bg-[#6750A4] text-white border-[#6750A4]" : "bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] border-transparent"} ${isLiked ? "" : "text-[#49454F]"}`}><Heart className={`w-3 h-3 ${isLiked ? "fill-white" : ""}`}/> {child.likes||0} {isLiked ? "✓" : ""}</button>;
+                                })()}
                                 <button onClick={()=> { setReplyTo(r.id); setReplyToName(child.author?.displayName||child.author?.username); setTimeout(()=> document.getElementById("reply-input-detail")?.focus(),50);}} className="text-[11px] font-semibold text-[#6750A4] hover:underline">Yanıtla</button>
                               </div>
                             </div>

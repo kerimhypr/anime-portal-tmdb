@@ -14,6 +14,8 @@ import {
   increment,
   updateDoc,
   addDoc,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -93,6 +95,7 @@ export async function createThread(author: any, title: string, content: string, 
       photoURL: author.photoURL,
     },
     likes: 0,
+    likedBy: [],
     replies: 0,
     views: 0,
     isPinned: false,
@@ -120,19 +123,38 @@ export async function replyThread(threadId: string, author: any, content: string
     parentId: parentId || null,
     createdAt: serverTimestamp(),
     likes: 0,
+    likedBy: [],
   });
   await updateDoc(doc(db, "forumThreads", threadId), { replies: increment(1) });
 }
-export async function likeReply(threadId: string, replyId: string) {
-  await updateDoc(doc(db, "forumThreads", threadId, "replies", replyId), { likes: increment(1) });
+export async function likeReply(threadId: string, replyId: string, uid: string) {
+  const ref = doc(db, "forumThreads", threadId, "replies", replyId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("Yanıt bulunamadı");
+  const data = snap.data() as any;
+  const already = (data.likedBy || []).includes(uid);
+  await updateDoc(ref, {
+    likes: increment(already ? -1 : 1),
+    likedBy: already ? arrayRemove(uid) : arrayUnion(uid),
+  });
+  return !already;
 }
 export function subscribeReplies(threadId: string, cb: (items: any[]) => void) {
   return onSnapshot(query(collection(db, "forumThreads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)), (snap) => {
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString() })));
   });
 }
-export async function likeThread(threadId: string) {
-  await updateDoc(doc(db, "forumThreads", threadId), { likes: increment(1) });
+export async function likeThread(threadId: string, uid: string) {
+  const ref = doc(db, "forumThreads", threadId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("Konu bulunamadı");
+  const data = snap.data() as any;
+  const already = (data.likedBy || []).includes(uid);
+  await updateDoc(ref, {
+    likes: increment(already ? -1 : 1),
+    likedBy: already ? arrayRemove(uid) : arrayUnion(uid),
+  });
+  return !already;
 }
 export async function getThread(threadId: string) {
   const snap = await getDoc(doc(db, "forumThreads", threadId));
