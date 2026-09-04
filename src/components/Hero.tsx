@@ -28,7 +28,6 @@ export default function Hero({ featured }: { featured:any[] }) {
 
       <div className="relative p-6 lg:p-10 max-w-3xl">
         <div className="flex flex-wrap gap-2 mb-3">
-          <span className="px-3 py-1 rounded-full bg-white text-black text-xs font-bold tracking-wide flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${isMovie?"bg-pink-500":"bg-violet-600"} animate-pulse`}/> {isMovie?"ANIME MOVIE • SINEMA":"ANIME • TV SERIES"} • #{idx+1} TREND</span>
           <span className="px-3 py-1 rounded-full bg-black/40 backdrop-blur text-white text-xs border border-white/20 flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400"/>{current.vote_average?.toFixed(1)} • {year}</span>
         </div>
         <h1 className="text-3xl lg:text-5xl font-black leading-[0.95] tracking-tight text-white drop-shadow-lg">{title}</h1>
