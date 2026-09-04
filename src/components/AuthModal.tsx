@@ -58,7 +58,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
             <h2 className="text-xl font-black tracking-tight">{mode === "login" ? "Giriş Yap" : "Kayıt Ol"}</h2>
             <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center"><X className="w-4 h-4" /></button>
           </div>
-          <p className="text-white/80 text-sm mt-1">Anime Portal • Tam fonksiyonel hesap sistemi – Firestore senkronizasyon</p>
+          <p className="text-white/80 text-sm mt-1">Anime Portal • Hesabını oluştur, listelerini yönet</p>
         </div>
 
         <form onSubmit={submit} className="p-6 space-y-4">
@@ -101,7 +101,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
             )}
           </div>
 
-          <p className="text-[11px] text-[#79747E] text-center leading-tight">Firestore + Auth ile tamamen fonksiyonel • Verilerin güvenle saklanır • 7/24 senkronizasyon</p>
+          <p className="text-[11px] text-[#79747E] text-center leading-tight">Verilerin güvenle saklanır • 7/24 senkronizasyon</p>
         </form>
       </div>
     </div>

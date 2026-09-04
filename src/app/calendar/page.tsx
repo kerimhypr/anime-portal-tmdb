@@ -10,8 +10,11 @@ export default function CalendarPage(){
   useEffect(()=>{
     (async()=>{
       const [a,u]=await Promise.all([tmdb.onTheAir(), tmdb.upcomingMovies()]);
-      setOnAir(a.results||[]);
-      setUpcoming(u.results||[]);
+      const animeAir = (a.results||[]).filter((x:any)=> x.original_language==="ja" || (x.genre_ids && x.genre_ids.includes(16)));
+      setOnAir(animeAir.length ? animeAir : (a.results||[]).filter((x:any)=> !x.title));
+      // upcoming already anime movies via discover, but extra filter ja
+      const animeMovies = (u.results||[]).filter((x:any)=> x.original_language==="ja" || !x.original_language);
+      setUpcoming(animeMovies);
     })();
   },[]);
   return (

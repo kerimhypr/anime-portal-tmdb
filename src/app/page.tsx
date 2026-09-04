@@ -7,6 +7,7 @@ import Forum from "@/components/Forum";
 import Shoutbox from "@/components/Shoutbox";
 import Analytics from "@/components/Analytics";
 import FilterModal from "@/components/FilterModal";
+import PublicLists from "@/components/PublicLists";
 import { tmdb } from "@/lib/tmdb";
 import { createRequest } from "@/lib/firestore";
 import { useAuth } from "@/lib/auth";
@@ -47,7 +48,9 @@ export default function HomePage() {
       setMoviePop(popMv.results||[]);
       setTopTv(topT.results||[]);
       setTopMovies(topM.results||[]);
-      setOnAir(air.results||[]);
+      // Yayın Akışı sadece anime TV – film bug fix
+      const animeAir = (air.results||[]).filter((x:any)=> x.original_language==="ja" || (x.genre_ids && x.genre_ids.includes(16)));
+      setOnAir(animeAir.length ? animeAir : (air.results||[]).filter((x:any)=> !x.title).slice(0,12));
     }catch(e){ console.error(e); }
     setLoading(false);
   }
@@ -114,15 +117,17 @@ export default function HomePage() {
 
       <Analytics />
 
-      {/* request system - REAL Firestore */}
+      <PublicLists />
+
+      {/* request system */}
       <div className="m3-card p-6 bg-gradient-to-br from-[#F3EDF7] to-[#EADDFF]/50 dark:from-[#211F26] dark:to-[#2B2930]">
-        <h3 className="font-bold text-lg">İçerik İsteği • Eksik Anime Bildir <span className="text-xs font-normal bg-white dark:bg-[#2B2930] px-2 py-1 rounded-full ml-2">Firestore canlı</span></h3>
-        <p className="text-sm text-[#49454F] dark:text-[#CAC4D0]">Listede olmayan bir anime/film mi var? Ya da hatalı bilgi mi gördün? Ekibimize ilet, 24 saat içinde ekleyelim. ({user?"Giriş yapıldı, Firestore’a yazılacak":"Misafir olarak da gönderebilirsin"})</p>
-        <form onSubmit={async(e)=>{ e.preventDefault(); if(!reqName.trim()) return; setReqSending(true); try{ await createRequest(user?.uid||null, reqName, reqLink, reqDetails); alert("İsteğiniz Firestore’a kaydedildi! Teşekkürler 🙏"); setReqName(""); setReqLink(""); setReqDetails(""); }catch(err:any){ alert(err.message);} finally{ setReqSending(false);} }} className="grid md:grid-cols-2 gap-3 mt-4">
+        <h3 className="font-bold text-lg">İçerik İsteği • Eksik Anime Bildir</h3>
+        <p className="text-sm text-[#49454F] dark:text-[#CAC4D0]">Listede olmayan bir anime/film mi var? Ya da hatalı bilgi mi gördün? Ekibimize ilet, 24 saat içinde ekleyelim.</p>
+        <form onSubmit={async(e)=>{ e.preventDefault(); if(!reqName.trim()) return; setReqSending(true); try{ await createRequest(user?.uid||null, reqName, reqLink, reqDetails); alert("İsteğiniz alındı! Teşekkürler 🙏"); setReqName(""); setReqLink(""); setReqDetails(""); }catch(err:any){ alert(err.message);} finally{ setReqSending(false);} }} className="grid md:grid-cols-2 gap-3 mt-4">
           <input value={reqName} onChange={e=>setReqName(e.target.value)} required placeholder="Anime / Film adı" className="h-11 rounded-xl px-4 bg-white dark:bg-[#141218] border border-[#E7E0EC] dark:border-[#49454F] text-sm outline-none focus:border-[#6750A4]"/>
           <input value={reqLink} onChange={e=>setReqLink(e.target.value)} placeholder="TMDB / MAL linki (opsiyonel)" className="h-11 rounded-xl px-4 bg-white dark:bg-[#141218] border border-[#E7E0EC] dark:border-[#49454F] text-sm outline-none"/>
           <textarea value={reqDetails} onChange={e=>setReqDetails(e.target.value)} placeholder="Detaylar / düzeltme..." className="md:col-span-2 min-h-[90px] rounded-xl p-3 bg-white dark:bg-[#141218] border border-[#E7E0EC] dark:border-[#49454F] text-sm outline-none"/>
-          <button disabled={reqSending} className="m3-button md:col-span-2 disabled:opacity-60">{reqSending?"Gönderiliyor...":"Gönder • Firestore Request"}</button>
+          <button disabled={reqSending} className="m3-button md:col-span-2 disabled:opacity-60">{reqSending?"Gönderiliyor...":"Gönder"}</button>
         </form>
       </div>
 

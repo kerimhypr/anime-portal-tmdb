@@ -17,8 +17,15 @@ function Countdown({ to }: { to:string }) {
 
 export default function BroadcastCalendar({ items }: { items:any[] }) {
   const [day,setDay]=useState(new Date().getDay()===0?6:new Date().getDay()-1);
-  // enrich items with fake schedule for demo: distribute across days with near future times
-  const enriched = items.slice(0,21).map((it:any,i:number)=> {
+  // Yayın Akışı sadece Anime TV (ja dili + Animation) – film bug fix: filtrele
+  const animeOnly = items.filter((it:any)=>{
+    const isJa = it.original_language === "ja";
+    const hasAnimation = (it.genre_ids && it.genre_ids.includes(16)) || (it.genres && it.genres.some((g:any)=> g.id===16));
+    // TMDB on_the_air genellikle TV içerir, ama yine de sadece anime kalsın
+    return isJa || hasAnimation;
+  });
+  const source = animeOnly.length ? animeOnly : items.filter((it:any)=> it.media_type !== "movie" && !it.title); // fallback tv only
+  const enriched = source.slice(0,21).map((it:any,i:number)=> {
     const d = i % 7;
     const base = new Date();
     base.setHours(20 + (i%4), (i*7)%60,0,0);

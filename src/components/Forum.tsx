@@ -33,17 +33,13 @@ export default function Forum() {
     setTitle(""); setContent(""); setShowNew(false);
   };
 
-  // fallback dummy if no Firestore yet
-  const display = filtered.length ? filtered : (active === "ALL" && !query ? [
-    { id: "t_dummy1", title: "[Teori] One Piece Final Arc - Imu'nun gerçek gücü?", tag: "THEORY", author: { username: "nico_robin" }, replies: 342, likes: 892, views: 12400, isPinned: true, created: "2 saat önce" },
-    { id: "t_dummy2", title: "Jujutsu Kaisen 2. Sezon finali spoiler'lı tartışma", tag: "SPOILERS", author: { username: "gojo_fan" }, replies: 128, likes: 445, views: 5600, created: "5 saat önce" },
-  ] : []);
+  const display = filtered;
 
   return (
     <div className="m3-card overflow-hidden">
       <div className="p-4 lg:p-6 bg-gradient-to-r from-[#6750A4] to-[#7D5260] text-white">
-        <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">Topluluk • Forum Hub <span className="text-xs font-normal bg-white/20 backdrop-blur px-2.5 py-1 rounded-full">Firestore Canlı</span></h2>
-        <p className="text-white/80 text-sm mt-1">Teoriler, bölüm tartışmaları, anketler ve haberler — tüm gönderiler Firestore'da saklanır.</p>
+        <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">Topluluk • Forum</h2>
+        <p className="text-white/80 text-sm mt-1">Teoriler, bölüm tartışmaları ve öneriler — spoiler etiketine dikkat.</p>
       </div>
 
       <div className="p-4 flex flex-wrap gap-2 items-center border-b border-[#F3EDF7] dark:border-[#2B2930]">
@@ -69,7 +65,7 @@ export default function Forum() {
             <select value={tag} onChange={(e) => setTag(e.target.value)} className="h-10 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] px-3 text-sm">
               <option value="GENERAL">Genel</option><option value="THEORY">Teori</option><option value="SPOILERS">Spoiler</option><option value="RECOMMENDATIONS">Öneri</option><option value="NEWS">Haber</option>
             </select>
-            <button type="submit" className="ml-auto m3-button h-10">Gönder • Firestore</button>
+            <button type="submit" className="ml-auto m3-button h-10">Gönder</button>
           </div>
         </form>
       )}
@@ -94,7 +90,7 @@ export default function Forum() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && display.length === 0 && <div className="p-10 text-center text-sm text-[#49454F]">Henüz konu yok — ilk konuyu sen aç! <button onClick={() => setAuthOpen(true)} className="text-[#6750A4] font-bold underline">Giriş yap</button></div>}
+        {display.length === 0 && <div className="p-10 text-center text-sm text-[#49454F]">Henüz konu yok — ilk konuyu sen aç! <button onClick={() => setAuthOpen(true)} className="text-[#6750A4] font-bold underline">Giriş yap</button></div>}
       </div>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </div>

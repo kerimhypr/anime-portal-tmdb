@@ -64,7 +64,7 @@ export default function Analytics() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="text-xs text-center text-[#49454F] dark:text-[#CAC4D0] mt-1">Gerçek izleme frekansı • Firestore</div>
+            <div className="text-xs text-center text-[#49454F] dark:text-[#CAC4D0] mt-1">Aylık takip</div>
             </>
             )}
           </div>

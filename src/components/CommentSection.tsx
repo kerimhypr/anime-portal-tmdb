@@ -91,7 +91,7 @@ export default function CommentSection({ animeId }: { animeId: number }) {
 
   return (
     <div className="m3-card p-4 lg:p-6">
-      <h3 className="font-bold text-lg mb-4">Yorumlar & Tartışma <span className="text-xs font-normal bg-[#F3EDF7] dark:bg-[#2B2930] px-2 py-1 rounded-full">{comments.length} yorum • Firestore canlı</span></h3>
+      <h3 className="font-bold text-lg mb-4">Yorumlar & Tartışma <span className="text-xs font-normal bg-[#F3EDF7] dark:bg-[#2B2930] px-2 py-1 rounded-full">{comments.length} yorum</span></h3>
 
       <div className="flex gap-3">
         <img src={appUser?.photoURL || user?.photoURL || "https://i.pravatar.cc/150?img=68"} alt="" className="w-9 h-9 rounded-full shrink-0 hidden sm:block object-cover" />
@@ -124,7 +124,7 @@ export default function CommentSection({ animeId }: { animeId: number }) {
       </div>
 
       <div className="mt-6 divide-y divide-[#F3EDF7] dark:divide-[#2B2930]">
-        {comments.length === 0 ? <div className="py-8 text-center text-sm text-[#49454F]">Henüz yorum yok — ilk yorumu sen yap! (Gerçek Firestore'da saklanacak)</div> : comments.map((c) => <CommentItem key={c.id} c={c} onReply={setReplyTo} />)}
+        {comments.length === 0 ? <div className="py-8 text-center text-sm text-[#49454F]">Henüz yorum yok — ilk yorumu sen yap!</div> : comments.map((c) => <CommentItem key={c.id} c={c} onReply={setReplyTo} />)}
       </div>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </div>

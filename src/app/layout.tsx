@@ -11,11 +11,11 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrai
 
 export const metadata: Metadata = {
   title: "Anime Portal — TV Series & Movies • TMDB Powered",
-  description: "Production-ready Anime Portal: TV Series & Movies, trailers, universe map, broadcast calendar, forum, watch tracker & analytics. Firestore + Auth fully functional, TMDB powered, Material You.",
+  description: "Anime Portal: TV Series & Movies, trailers, universe map, broadcast calendar, forum, watch tracker & analytics. TMDB powered, Material You.",
   icons: { icon: "/favicon.ico" },
   openGraph: {
     title: "Anime Portal",
-    description: "Anime TV Series & Movies — discover, track, discuss. Gerçek giriş, gerçek veritabanı.",
+    description: "Anime TV Series & Movies — discover, track, discuss.",
     type: "website",
   }
 };
@@ -34,8 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="max-w-[1440px] mx-auto px-4 lg:px-6 py-8 flex flex-col md:flex-row gap-6 justify-between text-sm">
                 <div>
                   <div className="font-black tracking-tight">ANIME PORTAL</div>
-                  <div className="text-[#49454F] dark:text-[#CAC4D0] max-w-md mt-1">Material You • Firestore Custom Auth ile tam fonksiyonel • TMDB canlı veri • Sıfır dummy — tüm işlemler anime-portal-tmdb-2026 Firestore’unda. © 2026 Kerim • anime-portal-tmdb-2026</div>
-                  <div className="text-xs text-[#79747E] mt-2">This product uses the TMDB API but is not endorsed or certified by TMDB. Project: anime-portal-tmdb-2026</div>
+                  <div className="text-[#49454F] dark:text-[#CAC4D0] max-w-md mt-1">TMDB destekli Anime platformu • Sadece Anime TV ve Filmler</div>
+                  <div className="text-xs text-[#79747E] mt-1">This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
                 </div>
                 <div className="flex gap-8 text-xs">
                   <div><div className="font-bold mb-2">Keşfet</div><div className="space-y-1 text-[#49454F] dark:text-[#CAC4D0]"><div>Trend</div><div>Takvim</div><div>Forum</div></div></div>

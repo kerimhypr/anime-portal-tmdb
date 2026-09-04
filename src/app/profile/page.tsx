@@ -37,7 +37,7 @@ export default function ProfilePage(){
       <div className="m3-card p-10 text-center">
         <div className="w-16 h-16 rounded-full bg-[#EADDFF] mx-auto flex items-center justify-center text-2xl">🔒</div>
         <div className="font-bold text-lg mt-3">Profil için giriş yap</div>
-        <div className="text-sm text-[#49454F] max-w-md mx-auto">Gerçek Firestore Auth ile giriş yap, profilini düzenle, kendi listelerini oluştur, watch istatistiklerin canlı senkronize olsun.</div>
+        <div className="text-sm text-[#49454F] max-w-md mx-auto">Giriş yap, profilini düzenle, kendi listelerini oluştur ve takip et.</div>
         <button onClick={()=>setAuthOpen(true)} className="m3-button mt-4 inline-flex items-center gap-2"><LogIn className="w-4 h-4"/> Giriş Yap / Kayıt Ol</button>
         <AuthModal open={authOpen} onClose={()=>setAuthOpen(false)} />
       </div>
@@ -94,21 +94,21 @@ export default function ProfilePage(){
 
       {edit && (
         <div className="m3-card p-6 space-y-4">
-          <h3 className="font-bold flex items-center gap-2"><Settings className="w-5 h-5 text-[#6750A4]"/> Profili Düzenle • Firestore'a Kaydedilecek</h3>
+          <h3 className="font-bold flex items-center gap-2"><Settings className="w-5 h-5 text-[#6750A4]"/> Profili Düzenle</h3>
           <div className="grid md:grid-cols-2 gap-3">
             <label className="block"><span className="text-xs font-semibold">Görünen Ad</span><input value={displayName} onChange={e=>setDisplayName(e.target.value)} className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
             <label className="block"><span className="text-xs font-semibold">Avatar URL</span><input value={avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="https://..." className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
             <label className="block"><span className="text-xs font-semibold">Banner URL</span><input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="https://..." className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
             <label className="block"><span className="text-xs font-semibold">Bio</span><input value={bio} onChange={e=>setBio(e.target.value)} className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
           </div>
-          <button onClick={save} disabled={saving} className="m3-button inline-flex items-center gap-2 disabled:opacity-60"><Save className="w-4 h-4"/> {saving?"Kaydediliyor...":"Kaydet • Firestore"}</button>
+          <button onClick={save} disabled={saving} className="m3-button inline-flex items-center gap-2 disabled:opacity-60"><Save className="w-4 h-4"/> {saving?"Kaydediliyor...":"Kaydet"}</button>
         </div>
       )}
 
       <Analytics />
 
       <div className="m3-card p-4 lg:p-6">
-        <h3 className="font-bold text-lg flex items-center gap-2"><Award className="w-5 h-5 text-[#6750A4]"/> Paylaşılabilir Listelerim <span className="text-xs font-normal bg-[#EADDFF] text-[#21005D] px-2 py-1 rounded-full">{customLists.length} liste • Firestore canlı</span></h3>
+        <h3 className="font-bold text-lg flex items-center gap-2"><Award className="w-5 h-5 text-[#6750A4]"/> Listelerim <span className="text-xs font-normal bg-[#EADDFF] text-[#21005D] px-2 py-1 rounded-full">{customLists.length} liste</span></h3>
         
         <form onSubmit={handleCreateList} className="mt-4 p-4 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F]">
           <div className="font-semibold text-sm mb-3 flex items-center gap-2"><Plus className="w-4 h-4"/> Yeni Liste Oluştur</div>
@@ -121,7 +121,7 @@ export default function ProfilePage(){
               <input type="checkbox" checked={isPublic} onChange={e=>setIsPublic(e.target.checked)} className="accent-[#6750A4]" />
               <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${isPublic?"bg-[#EADDFF] text-[#21005D]":"bg-white dark:bg-[#211F26] border"}`}>{isPublic ? <><Globe className="w-3 h-3"/> Herkese Açık</> : <><Lock className="w-3 h-3"/> Gizli</>}</span>
             </label>
-            <button disabled={creating} className="ml-auto m3-button h-10 disabled:opacity-60">{creating?"Oluşturuluyor...":"Oluştur • Firestore"}</button>
+            <button disabled={creating} className="ml-auto m3-button h-10 disabled:opacity-60">{creating?"Oluşturuluyor...":"Oluştur"}</button>
           </div>
         </form>
 
