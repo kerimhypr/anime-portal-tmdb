@@ -36,30 +36,40 @@ type Store = {
 
 const Ctx = createContext<Store | null>(null);
 
+const TMDB_GENRE_MAP: Record<number,string> = {28:"Action",12:"Adventure",16:"Animation",35:"Comedy",18:"Drama",14:"Fantasy",27:"Horror",10749:"Romance",878:"Sci-Fi",53:"Thriller",10765:"Sci-Fi & Fantasy",9648:"Mystery",10751:"Family",10759:"Action & Adventure",10762:"Kids",10763:"News",10764:"Reality",10767:"Talk",80:"Crime",99:"Documentary",36:"History",10402:"Music",10768:"War & Politics",37:"Western"};
+function isWatched(e: WatchlistEntry): boolean {
+  if (e.format === "MOVIE") return e.status === "COMPLETED" || e.status === "WATCHING";
+  return (e.currentEpisode || 0) >= 1;
+}
 function genStats(list: WatchlistEntry[]): WatchStats {
-  const completed = list.filter((l) => l.status === "COMPLETED");
-  const watching = list.filter((l) => l.status === "WATCHING").length;
+  const watched = list.filter(isWatched);
+  const completed = watched.filter((l) => l.status === "COMPLETED");
+  const watching = watched.filter((l) => l.status === "WATCHING").length;
   const movies = completed.filter((l) => l.format === "MOVIE").length;
   const episodes = completed.filter((l) => l.format === "TV").reduce((a, c) => a + (c.currentEpisode || 0), 0);
-  const totalEpisodesWatching = list.filter((l) => l.status === "WATCHING").reduce((a, c) => a + (c.currentEpisode || 0), 0);
+  const totalEpisodesWatching = watched.filter((l) => l.status === "WATCHING").reduce((a, c) => a + (c.currentEpisode || 0), 0);
   const totalEp = episodes + totalEpisodesWatching;
   const { hours, days, minutes } = calcWatchTime(totalEp, 24, movies, 110);
-  // derive genre breakdown from watchlist anime genres – if empty, return empty (no dummy)
+  // genre breakdown – only for watched (>=1 episode), skip Bilinmeyen if no genre info
   const genreCount: Record<string, number> = {};
-  list.forEach((e) => {
-    const genres = e.anime?.genres;
+  watched.forEach((e) => {
+    const genres: any[] = e.anime?.genres || [];
+    const genreIds: number[] = (e.anime as any)?.genre_ids || [];
     if (genres && genres.length) {
       genres.forEach((g: any) => {
         const name = g.name;
-        genreCount[name] = (genreCount[name] || 0) + 1;
+        if(name && name!=="Bilinmeyen"){ genreCount[name] = (genreCount[name] || 0) + 1; }
       });
-    } else {
-      const g = "Bilinmeyen";
-      genreCount[g] = (genreCount[g] || 0) + 1;
+    } else if (genreIds.length) {
+      genreIds.forEach((id:number)=>{
+        const name = TMDB_GENRE_MAP[id];
+        if(name) genreCount[name] = (genreCount[name] || 0) + 1;
+      });
     }
+    // if still no genre, skip – don't count as Bilinmeyen
   });
   const total = Object.values(genreCount).reduce((a, b) => a + b, 0);
-  const colorMap: Record<string, string> = { Action: "#FF6B9D", Fantasy: "#6BCB77", Drama: "#9C27B0", "Sci-Fi": "#00D9FF", Comedy: "#FFD93D", Adventure: "#00D9FF", Romance: "#E91E63", "Science Fiction": "#00D9FF", Animation: "#6750A4", Mystery: "#607D8B", Horror: "#795548" };
+  const colorMap: Record<string, string> = { "Action": "#FF6B9D", "Action & Adventure": "#FF6B9D", "Adventure": "#00D9FF", "Animation": "#6750A4", "Comedy": "#FFD93D", "Drama": "#9C27B0", "Fantasy": "#6BCB77", "Sci-Fi": "#00D9FF", "Sci-Fi & Fantasy": "#00D9FF", "Romance": "#E91E63", "Science Fiction": "#00D9FF", "Mystery": "#607D8B", "Horror": "#795548", "Thriller": "#FF5722", "Family": "#8BC34A" };
   const breakdown = Object.entries(genreCount).map(([g, c]) => ({
     genre: g,
     count: c as number,
@@ -67,12 +77,12 @@ function genStats(list: WatchlistEntry[]): WatchStats {
     color: colorMap[g] || "#6750A4",
   }));
 
-  // yearly activity: group by month from updatedAt (real data)
+  // yearly activity: only watched
   const monthNames = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
   const monthCounts: Record<string, number> = {};
   monthNames.forEach((m) => (monthCounts[m] = 0));
   let hasRealDates = false;
-  list.forEach((e) => {
+  watched.forEach((e) => {
     try {
       const d = new Date(e.updatedAt);
       if (!isNaN(d.getTime())) {
@@ -82,9 +92,8 @@ function genStats(list: WatchlistEntry[]): WatchStats {
       }
     } catch {}
   });
-  // only show months that have data, or if no data show current month with 0 + empty state
   const yearlyActivity = hasRealDates
-    ? monthNames.map((m) => ({ month: m, count: monthCounts[m] })).filter((x) => x.count > 0 || list.length < 3) // keep empty months minimal if small list
+    ? monthNames.map((m) => ({ month: m, count: monthCounts[m] })).filter((x) => x.count > 0)
     : [];
 
   return {
@@ -165,10 +174,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (t: "light" | "dark" | "oled") => setThemeState(t);
 
+  const toGenres = (anime:any): any[] => {
+    if (anime.genres && anime.genres.length) return anime.genres;
+    if (anime.genre_ids && anime.genre_ids.length) return anime.genre_ids.map((id:number)=> ({ id, name: TMDB_GENRE_MAP[id] || String(id) })).filter((g:any)=> g.name);
+    return [];
+  };
   const toggleWatch = async (anime: any, format: "TV" | "MOVIE") => {
     if (!fbUser) {
-      // anon: local only, but prompt to login
-      // still allow local toggle
       const exists = watchlist.find((p) => p.tmdbId === anime.id);
       if (exists) {
         setWatchlist((prev) => prev.filter((p) => p.tmdbId !== anime.id));
@@ -180,7 +192,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           format,
           status: "PLAN_TO_WATCH",
           currentEpisode: 0,
-          totalEpisodes: anime.number_of_episodes || 24,
+          totalEpisodes: anime.number_of_episodes || anime.number_of_episodes === 0 ? anime.number_of_episodes : (anime.number_of_episodes || 24),
           score: null,
           progress: 0,
           isFavorite: false,
@@ -198,16 +210,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             firstAirDate: anime.first_air_date || null,
             lastAirDate: null,
             status: "Finished",
-            genres: anime.genres || [],
+            genres: toGenres(anime),
             studios: [],
             ageRating: "PG-13",
             originalLanguage: "ja",
             popularity: anime.popularity || 0,
-          },
+          } as any,
         };
+        (entry.anime as any).genre_ids = anime.genre_ids || [];
         setWatchlist((prev) => [entry, ...prev]);
       }
-      // hint to login
       if (!exists) setTimeout(() => alert("Listeye eklendi (misafir modu). Kalıcı kaydetmek için giriş yap!"), 300);
       return;
     }
@@ -215,6 +227,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (exists) {
       await removeWatchlist(fbUser.uid, anime.id);
     } else {
+      const genres = toGenres(anime);
       await upsertWatchlist(fbUser.uid, anime.id, {
         format,
         status: "PLAN_TO_WATCH",
@@ -236,7 +249,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           firstAirDate: anime.first_air_date || null,
           lastAirDate: null,
           status: "Finished",
-          genres: anime.genres || [],
+          genres,
+          genre_ids: anime.genre_ids || [],
           studios: [],
           ageRating: "PG-13",
           originalLanguage: "ja",
