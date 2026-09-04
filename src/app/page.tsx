@@ -124,7 +124,7 @@ export default function HomePage() {
         const pick = all[Math.floor(Math.random()*all.length)];
         if(!pick) return;
         const isM = !!pick.title;
-        window.location.href = isM? `/movie/${pick.id}` : `/anime/${pick.id}`;
+        window.location.href = isM? `/movie?id=${pick.id}` : `/anime?id=${pick.id}`;
       }} className="fixed bottom-6 right-6 m3-fab shadow-m3-3 z-40">
         🎲 Surprise Me
       </button>

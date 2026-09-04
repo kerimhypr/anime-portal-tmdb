@@ -15,7 +15,7 @@ export default function AnimeCard({ item, format }: { item:any; format?: "tv"|"m
   const { watchlist } = useStore();
   const [open, setOpen] = useState(false);
   const inList = watchlist.some(w=>w.tmdbId===id);
-  const href = isMovie? `/movie/${id}` : `/anime/${id}`;
+  const href = isMovie? `/movie?id=${id}` : `/anime?id=${id}`;
   // genre display: map genre_ids to names if available, fallback to categories
   const genreMap: Record<number,string> = {28:"Aksiyon",12:"Macera",16:"Animasyon",35:"Komedi",18:"Drama",14:"Fantastik",27:"Korku",10749:"Romantik",878:"Bilim Kurgu",53:"Gerilim",10765:"Fantastik",9648:"Gizem",10751:"Aile",36:"Tarih",99:"Belgesel"};
   const genres: string[] = item.genres?.map((g:any)=> g.name) || item.genre_ids?.map((gid:number)=> genreMap[gid]).filter(Boolean) || [];

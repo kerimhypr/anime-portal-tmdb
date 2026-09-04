@@ -90,11 +90,11 @@ export default function ListelerimPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((e) => (
             <div key={e.id} className="m3-card overflow-hidden flex">
-              <Link href={e.format === "MOVIE" ? `/movie/${e.tmdbId}` : `/anime/${e.tmdbId}`} className="w-28 shrink-0">
+              <Link href={e.format === "MOVIE" ? `/movie?id=${e.tmdbId}` : `/anime?id=${e.tmdbId}`} className="w-28 shrink-0">
                 <img src={tmdbImage.poster(e.anime.posterPath, "w185")} alt="" className="w-full h-full object-cover min-h-[168px]" />
               </Link>
               <div className="p-3 flex-1 min-w-0 flex flex-col">
-                <Link href={e.format === "MOVIE" ? `/movie/${e.tmdbId}` : `/anime/${e.tmdbId}`} className="font-semibold leading-tight line-clamp-2 hover:text-[#6750A4]">{e.anime.title.english || e.anime.title.romaji}</Link>
+                <Link href={e.format === "MOVIE" ? `/movie?id=${e.tmdbId}` : `/anime?id=${e.tmdbId}`} className="font-semibold leading-tight line-clamp-2 hover:text-[#6750A4]">{e.anime.title.english || e.anime.title.romaji}</Link>
                 <div className="text-xs text-[#49454F] flex items-center gap-1.5 mt-1">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${e.format === "MOVIE" ? "bg-[#FFD8E4] text-[#31111D]" : "bg-[#EADDFF] text-[#21005D]"}`}>{e.format}</span>
                   <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{e.anime.voteAverage?.toFixed(1)}</span>
@@ -157,7 +157,7 @@ export default function ListelerimPage() {
                           {expandedAnimes[l.id].map((a: any) => {
                             const isMovie = a._format === "movie" || !!a.title;
                             return (
-                              <Link key={a.id} href={isMovie ? `/movie/${a.id}` : `/anime/${a.id}`} className="group relative rounded-xl overflow-hidden bg-white dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F]">
+                              <Link key={a.id} href={isMovie ? `/movie?id=${a.id}` : `/anime?id=${a.id}`} className="group relative rounded-xl overflow-hidden bg-white dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F]">
                                 <img src={tmdbImage.poster(a.poster_path, "w342")} alt={a.name || a.title} className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition" />
                                 <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
                                   <div className="text-white text-xs font-semibold line-clamp-2">{a.name || a.title}</div>

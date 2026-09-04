@@ -35,8 +35,8 @@ export default function Hero({ featured }: { featured:any[] }) {
         <p className="text-white/80 text-sm lg:text-[15px] leading-relaxed line-clamp-3 mt-3 max-w-2xl">{current.overview || "Japon animasyonunun zirvesi — sinematik anlatım, nefes kesen görseller ve unutulmaz karakterler."}</p>
 
         <div className="flex flex-wrap gap-3 mt-6">
-          <Link href={isMovie?`/movie/${current.id}`:`/anime/${current.id}`} className="h-12 px-7 rounded-full bg-white text-black font-semibold inline-flex items-center gap-2 hover:bg-zinc-100 transition"><Play className="w-5 h-5 fill-black"/> Fragmanı İzle</Link>
-          <Link href={isMovie?`/movie/${current.id}`:`/anime/${current.id}`} className="h-12 px-7 rounded-full bg-white/15 backdrop-blur border border-white/25 text-white font-semibold inline-flex items-center gap-2 hover:bg-white/20 transition"><Info className="w-5 h-5"/> Detaylar</Link>
+          <Link href={isMovie?`/movie?id=${current.id}`:`/anime?id=${current.id}`} className="h-12 px-7 rounded-full bg-white text-black font-semibold inline-flex items-center gap-2 hover:bg-zinc-100 transition"><Play className="w-5 h-5 fill-black"/> Fragmanı İzle</Link>
+          <Link href={isMovie?`/movie?id=${current.id}`:`/anime?id=${current.id}`} className="h-12 px-7 rounded-full bg-white/15 backdrop-blur border border-white/25 text-white font-semibold inline-flex items-center gap-2 hover:bg-white/20 transition"><Info className="w-5 h-5"/> Detaylar</Link>
           <button onClick={()=>toggleWatch(current, isMovie?"MOVIE":"TV")} className={`h-12 px-6 rounded-full font-semibold inline-flex items-center gap-2 border transition ${inList?"bg-[#6750A4] border-[#6750A4] text-white":"bg-black/30 backdrop-blur border-white/20 text-white hover:bg-black/40"}`}>{inList?<Check className="w-5 h-5"/>:<Plus className="w-5 h-5"/>}{inList?"Listemde":"Listeye Ekle"}</button>
         </div>
 

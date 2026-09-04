@@ -80,7 +80,7 @@ export default function ListClient() {
             const isMovie = a._format === "movie" || !!a.title;
             return (
               <div key={a.id} className="m3-card overflow-hidden group">
-                <Link href={isMovie ? `/movie/${a.id}` : `/anime/${a.id}`} className="block relative aspect-[2/3] overflow-hidden">
+                <Link href={isMovie ? `/movie?id=${a.id}` : `/anime?id=${a.id}`} className="block relative aspect-[2/3] overflow-hidden">
                   <img src={tmdbImage.poster(a.poster_path, "w500")} alt={a.name || a.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                   <div className="absolute top-2 left-2 flex gap-1.5"><span className={`px-2 py-1 rounded-full text-[10px] font-bold ${isMovie ? "bg-[#FFD8E4] text-[#31111D]" : "bg-[#EADDFF] text-[#21005D]"}`}>{isMovie ? "MOVIE" : "TV"}</span></div>
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">

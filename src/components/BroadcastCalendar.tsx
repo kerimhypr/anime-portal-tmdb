@@ -50,7 +50,7 @@ export default function BroadcastCalendar({ items }: { items:any[] }) {
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((it:any)=>(
-          <Link key={it.id} href={`/anime/${it.id}`} className="flex gap-3 p-3 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] hover:shadow-m3-1 transition border border-transparent hover:border-[#E7E0EC] dark:hover:border-[#49454F]">
+          <Link key={it.id} href={`/anime?id=${it.id}`} className="flex gap-3 p-3 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] hover:shadow-m3-1 transition border border-transparent hover:border-[#E7E0EC] dark:hover:border-[#49454F]">
             <img src={tmdbImage.poster(it.poster_path,"w185")} alt="" className="w-[64px] h-[88px] object-cover rounded-xl shrink-0"/>
             <div className="min-w-0 flex-1">
               <div className="text-xs flex items-center gap-1 text-[#6750A4] dark:text-[#D0BCFF] font-semibold"><Tv className="w-3 h-3"/> S1 • BÖLÜM {it._ep}</div>

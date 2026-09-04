@@ -184,7 +184,7 @@ export default function ProfilePage(){
                           {expandedAnimes[l.id].map((a:any)=>{
                             const isMovie = a._format==="movie" || !!a.title;
                             return (
-                              <Link key={a.id} href={isMovie?`/movie/${a.id}`:`/anime/${a.id}`} className="group relative rounded-xl overflow-hidden bg-white dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F]">
+                              <Link key={a.id} href={isMovie?`/movie?id=${a.id}`:`/anime?id=${a.id}`} className="group relative rounded-xl overflow-hidden bg-white dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F]">
                                 <img src={tmdbImage.poster(a.poster_path,"w342")} alt={a.name||a.title} className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition"/>
                                 <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
                                   <div className="text-white text-xs font-semibold line-clamp-2">{a.name||a.title}</div>

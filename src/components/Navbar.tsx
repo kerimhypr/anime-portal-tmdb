@@ -67,7 +67,7 @@ export default function Navbar() {
             {showSearch && results.length>0 && (
               <div className="absolute top-[46px] left-0 right-0 bg-white dark:bg-[#211F26] rounded-2xl shadow-m3-3 border border-[#E7E0EC] dark:border-[#49454F] overflow-hidden p-2">
                 {results.map((r:any)=>(
-                  <button key={r.id+r.media_type} onClick={()=>{ setShowSearch(false); setQ(""); router.push(r.media_type==="movie"?`/movie/${r.id}`:`/anime/${r.id}`)}} className="w-full flex gap-3 p-2 hover:bg-[#F3EDF7] dark:hover:bg-[#2B2930] rounded-xl text-left">
+                  <button key={r.id+r.media_type} onClick={()=>{ setShowSearch(false); setQ(""); router.push(r.media_type==="movie"?`/movie?id=${r.id}`:`/anime?id=${r.id}`)}} className="w-full flex gap-3 p-2 hover:bg-[#F3EDF7] dark:hover:bg-[#2B2930] rounded-xl text-left">
                     <img src={r.poster_path?`https://image.tmdb.org/t/p/w92${r.poster_path}`:"https://via.placeholder.com/92x138/6750A4/FFF?text=?"} alt="" className="w-10 h-[56px] object-cover rounded-lg"/>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold leading-tight truncate">{r.title||r.name}</div>
