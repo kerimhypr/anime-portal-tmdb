@@ -11,7 +11,7 @@ import PublicLists from "@/components/PublicLists";
 import { tmdb } from "@/lib/tmdb";
 import { createRequest } from "@/lib/firestore";
 import { useAuth } from "@/lib/auth";
-import { SlidersHorizontal, Film, Tv } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -76,21 +76,6 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <Hero featured={trending} />
-
-      {/* quick stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          {k:"TV Series", v:`${animePop.length}+`, d:"Japon Animesi", icon:Tv, c:"bg-[#EADDFF] text-[#21005D]"},
-          {k:"Anime Movies", v:`${moviePop.length}+`, d:"Sinema Filmleri", icon:Film, c:"bg-[#FFD8E4] text-[#31111D]"},
-          {k:"Sıfır Manga", v:"0", d:"Yalnızca Anime", icon:Tv, c:"bg-[#E8DEF8] text-[#1D192B]"},
-          {k:"TMDB", v:"Canlı", d:"Güncel Metadata", icon:Film, c:"bg-[#FFF9C4] text-[#31111D]"},
-        ].map(card=>(
-          <div key={card.k} className="rounded-2xl p-4 bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#2B2930] flex items-center gap-3">
-            <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.c}`}><card.icon className="w-5 h-5"/></span>
-            <div><div className="text-xs text-[#49454F] dark:text-[#CAC4D0]">{card.k}</div><div className="font-black leading-none">{card.v}</div><div className="text-xs text-[#49454F]">{card.d}</div></div>
-          </div>
-        ))}
-      </div>
 
       {/* filter bar */}
       <div className="flex flex-wrap gap-3 items-center">
