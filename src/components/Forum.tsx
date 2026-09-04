@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { MessageSquare, Pin, Eye, Heart, Search, Plus, ArrowLeft, Send, Trash2 } from "lucide-react";
-import { subscribeThreads, createThread, subscribeReplies, replyThread, likeThread, getThread } from "@/lib/firestore";
+import { subscribeThreads, createThread, subscribeReplies, replyThread, likeThread, likeReply, getThread } from "@/lib/firestore";
 import { useAuth } from "@/lib/auth";
 import AuthModal from "./AuthModal";
 
@@ -52,6 +52,10 @@ export default function Forum() {
     setLiking(true);
     try { await likeThread(thread.id); } catch (e:any){ alert(e.message); }
     finally { setLiking(false); }
+  };
+  const handleLikeReply = async (replyId: string) => {
+    if (!user) { setAuthOpen(true); return; }
+    try { await likeReply(selected.id, replyId); } catch(e:any){ alert(e.message); }
   };
 
   const handleReply = async () => {
@@ -112,7 +116,7 @@ export default function Forum() {
                 <span className="text-xs text-[#79747E]">• {selected.created}</span>
               </div>
               <h2 className="text-xl font-black leading-tight mt-1">{selected.title}</h2>
-              <p className="text-sm text-[#1C1B1F] dark:text-[#E6E0E9] mt-3 whitespace-pre-wrap leading-relaxed bg-[#F3EDF7] dark:bg-[#211F26] rounded-2xl p-4 border border-[#E7E0EC]/50">{selected.content}</p>
+              <p className="text-sm text-[#49454F] dark:text-[#CAC4D0] mt-3 whitespace-pre-wrap leading-relaxed">{selected.content}</p>
               <div className="flex items-center gap-2 mt-4">
                 <button onClick={()=> handleLike(selected)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] hover:bg-[#EADDFF] hover:border-[#6750A4] text-sm font-medium transition"><Heart className="w-4 h-4"/> {selected.likes||0} Beğen</button>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm border border-transparent"><MessageSquare className="w-4 h-4"/> {replies.length} yanıt</span>
@@ -131,7 +135,10 @@ export default function Forum() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap"><span className="text-sm font-bold">{r.author?.displayName || r.author?.username}</span><span className="text-xs bg-[#E8DEF8] dark:bg-[#4F378B] text-[#21005D] dark:text-white px-2 py-0.5 rounded-full">Lv.1</span><span className="text-xs text-[#79747E]">{new Date(r.createdAt).toLocaleString("tr-TR")}</span></div>
                         <div className="text-sm mt-1.5 leading-relaxed whitespace-pre-wrap">{r.content}</div>
-                        <button onClick={()=> { setReplyTo(r.id); setReplyToName(r.author?.displayName || r.author?.username); setTimeout(()=> document.getElementById("reply-input")?.focus(), 50); }} className="mt-2 text-xs font-semibold text-[#6750A4] hover:underline inline-flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Yanıtla</button>
+                        <div className="flex items-center gap-3 mt-2">
+                          <button onClick={()=> handleLikeReply(r.id)} className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF]"><Heart className="w-3 h-3"/> {r.likes||0} Beğen</button>
+                          <button onClick={()=> { setReplyTo(r.id); setReplyToName(r.author?.displayName || r.author?.username); setTimeout(()=> document.getElementById("reply-input")?.focus(), 50); }} className="text-xs font-semibold text-[#6750A4] hover:underline inline-flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Yanıtla</button>
+                        </div>
                       </div>
                     </div>
                     {(childrenMap.get(r.id) || []).length>0 && (
@@ -142,6 +149,10 @@ export default function Forum() {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5"><span className="text-xs font-bold">{child.author?.displayName}</span><span className="text-[11px] text-[#79747E]">{new Date(child.createdAt).toLocaleString("tr-TR")}</span></div>
                               <div className="text-xs mt-1 whitespace-pre-wrap leading-relaxed"><span className="text-[#6750A4] font-semibold">@{r.author?.username} </span>{child.content}</div>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <button onClick={()=> handleLikeReply(child.id)} className="text-[11px] inline-flex items-center gap-1 text-[#49454F] hover:text-[#6750A4]"><Heart className="w-3 h-3"/> {child.likes||0}</button>
+                                <button onClick={()=> { setReplyTo(r.id); setReplyToName(child.author?.displayName||child.author?.username); setTimeout(()=> document.getElementById("reply-input")?.focus(),50);}} className="text-[11px] font-semibold text-[#6750A4] hover:underline">Yanıtla</button>
+                              </div>
                             </div>
                           </div>
                         ))}

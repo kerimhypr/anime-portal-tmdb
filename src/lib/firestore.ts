@@ -123,6 +123,9 @@ export async function replyThread(threadId: string, author: any, content: string
   });
   await updateDoc(doc(db, "forumThreads", threadId), { replies: increment(1) });
 }
+export async function likeReply(threadId: string, replyId: string) {
+  await updateDoc(doc(db, "forumThreads", threadId, "replies", replyId), { likes: increment(1) });
+}
 export function subscribeReplies(threadId: string, cb: (items: any[]) => void) {
   return onSnapshot(query(collection(db, "forumThreads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)), (snap) => {
     cb(snap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString() })));
