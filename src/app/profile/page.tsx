@@ -13,7 +13,7 @@ import { storage } from "@/lib/firebase";
 
 export default function ProfilePage(){
   const { user, watchlist, stats } = useStore();
-  const { user: fbUser, appUser, updateAppUser } = useAuth();
+  const { user: fbUser, appUser, updateAppUser, loading: authLoading } = useAuth() as any;
   const [authOpen,setAuthOpen]=useState(false);
   const [edit,setEdit]=useState(false);
   const [displayName,setDisplayName]=useState(appUser?.displayName||"");
@@ -23,6 +23,31 @@ export default function ProfilePage(){
   const [saving,setSaving]=useState(false);
   const [uploadingAvatar,setUploadingAvatar]=useState(false);
   const [uploadingBanner,setUploadingBanner]=useState(false);
+  const compressImage = (file: File, maxW: number, maxH: number, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > maxW || h > maxH) {
+            const ratio = Math.min(maxW / w, maxH / h);
+            w = Math.round(w * ratio); h = Math.round(h * ratio);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("Canvas yok"));
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = () => reject(new Error("Resim okunamadı"));
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => reject(new Error("Dosya okunamadı"));
+      reader.readAsDataURL(file);
+    });
+  };
 
   // custom lists
   const [customLists,setCustomLists]=useState<any[]>([]);
@@ -39,6 +64,9 @@ export default function ProfilePage(){
     return ()=>unsub();
   },[fbUser]);
 
+  if(authLoading){
+    return <div className="m3-card p-12 text-center"><div className="w-8 h-8 border-4 border-[#6750A4] border-t-transparent rounded-full animate-spin mx-auto"/><div className="text-sm text-[#49454F] mt-3">Profil yükleniyor...</div></div>;
+  }
   if(!fbUser){
     return (
       <div className="m3-card p-10 text-center">
@@ -62,41 +90,44 @@ export default function ProfilePage(){
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>)=>{
     const file = e.target.files?.[0];
     if(!file || !fbUser) return;
-    if(file.size > 2*1024*1024){ alert("Avatar için max 2MB (daha küçük seç)"); return; }
+    if(file.size > 5*1024*1024){ alert("Avatar için max 5MB"); return; }
     if(!file.type.startsWith("image/")){ alert("Sadece resim dosyası seç"); return; }
     setUploadingAvatar(true);
     try{
-      // Try Storage first, fallback to data URL (Storage henüz aktif değilse)
-      try{
-        const r = ref(storage, `avatars/${fbUser.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(r, file);
-        const url = await getDownloadURL(r);
-        setAvatarUrl(url);
-      } catch{
-        const reader = new FileReader();
-        reader.onload = () => setAvatarUrl(reader.result as string);
-        reader.readAsDataURL(file);
+      // 5MB dosyayı Firestore için <800KB JPEG'e sıkıştır (1MB limit için güvenli)
+      const dataUrl = await compressImage(file, 500, 500, 0.75);
+      // Firestore 1MB limiti için kontrol
+      if (dataUrl.length > 900*1024) {
+        // daha fazla sıkıştır
+        const dataUrl2 = await compressImage(file, 400, 400, 0.6);
+        setAvatarUrl(dataUrl2);
+      } else {
+        setAvatarUrl(dataUrl);
       }
-    } finally{ setTimeout(()=> setUploadingAvatar(false), 800); }
+      // Arka planda Storage'a da dene (başarılı olursa URL'yi Storage URL ile değiştir)
+      ref(storage, `avatars/${fbUser.uid}/${Date.now()}_${file.name}`);
+      // fire-and-forget, hata olursa dataURL kalır
+      uploadBytes(ref(storage, `avatars/${fbUser.uid}/${Date.now()}_${file.name}`), file).then(r=> getDownloadURL(r.ref).then(url=> setAvatarUrl(url)).catch(()=>{})).catch(()=>{});
+    } catch(err:any){ alert("Yükleme hatası: "+(err.message||"Bilinmeyen")); }
+    finally{ setUploadingAvatar(false); e.target.value=""; }
   };
   const handleBannerFile = async (e: React.ChangeEvent<HTMLInputElement>)=>{
     const file = e.target.files?.[0];
     if(!file || !fbUser) return;
-    if(file.size > 3*1024*1024){ alert("Banner için max 3MB"); return; }
+    if(file.size > 5*1024*1024){ alert("Banner için max 5MB"); return; }
     if(!file.type.startsWith("image/")){ alert("Sadece resim dosyası seç"); return; }
     setUploadingBanner(true);
     try{
-      try{
-        const r = ref(storage, `banners/${fbUser.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(r, file);
-        const url = await getDownloadURL(r);
-        setBannerUrl(url);
-      } catch{
-        const reader = new FileReader();
-        reader.onload = () => setBannerUrl(reader.result as string);
-        reader.readAsDataURL(file);
+      const dataUrl = await compressImage(file, 1200, 400, 0.72);
+      if (dataUrl.length > 900*1024) {
+        const dataUrl2 = await compressImage(file, 1000, 350, 0.6);
+        setBannerUrl(dataUrl2);
+      } else {
+        setBannerUrl(dataUrl);
       }
-    } finally{ setTimeout(()=> setUploadingBanner(false), 800); }
+      uploadBytes(ref(storage, `banners/${fbUser.uid}/${Date.now()}_${file.name}`), file).then(r=> getDownloadURL(r.ref).then(url=> setBannerUrl(url)).catch(()=>{})).catch(()=>{});
+    } catch(err:any){ alert("Yükleme hatası: "+(err.message||"Bilinmeyen")); }
+    finally{ setUploadingBanner(false); e.target.value=""; }
   };
 
   const handleCreateList = async(e:React.FormEvent)=>{
@@ -199,7 +230,7 @@ export default function ProfilePage(){
                     <Upload className="w-4 h-4"/>{uploadingBanner ? "Yükleniyor..." : "Dosya Seç"}
                     <input type="file" accept="image/*" onChange={handleBannerFile} className="hidden" disabled={uploadingBanner}/>
                   </label>
-                  <div className="text-[11px] text-[#49454F] dark:text-[#CAC4D0] mt-1">1200×400 önerilir, max 8MB</div>
+                  <div className="text-[11px] text-[#49454F] dark:text-[#CAC4D0] mt-1">1200×400 önerilir, max 5MB</div>
                   <input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="veya https:// ile URL yapıştır" className="mt-2 w-full h-9 rounded-xl bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] px-3 text-xs outline-none"/>
                 </div>
               </div>
