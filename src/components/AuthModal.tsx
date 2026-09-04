@@ -30,11 +30,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
       setPassword("");
       setDisplayName("");
     } catch (err: any) {
-      const msg = err?.message || "Hata oluştu";
-      if (msg.includes("auth/invalid-credential") || msg.includes("auth/wrong-password")) setError("E-posta veya şifre hatalı");
-      else if (msg.includes("auth/email-already-in-use")) setError("Bu e-posta zaten kayıtlı");
-      else if (msg.includes("auth/configuration-not-found")) setError("Auth yapılandırması eksik – lütfen yöneticiye bildir");
-      else setError(msg);
+      setError(err?.message || "Hata oluştu");
     } finally {
       setLoading(false);
     }
@@ -47,8 +43,7 @@ export default function AuthModal({ open, onClose }: { open: boolean; onClose: (
       await signInGoogle();
       onClose();
     } catch (err: any) {
-      if (err?.code === "auth/operation-not-allowed") setError("Google ile giriş henüz aktif değil – e-posta ile kayıt ol");
-      else setError(err?.message || "Google giriş başarısız");
+      setError(err?.message || "Google giriş başarısız");
     } finally {
       setLoading(false);
     }

@@ -26,7 +26,11 @@ export default function Analytics() {
 
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <div className="text-sm font-semibold mb-2">Tür Dağılımı</div>
+            <div className="text-sm font-semibold mb-2">Tür Dağılımı {stats.genreBreakdown.length===0 && <span className="text-xs font-normal text-[#49454F]">— veri yok</span>}</div>
+            {stats.genreBreakdown.length===0 ? (
+              <div className="h-[180px] flex items-center justify-center text-xs text-[#49454F] bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl">Listene anime ekle, tür dağılımı burada canlı görünecek</div>
+            ) : (
+            <>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -42,9 +46,15 @@ export default function Analytics() {
                 <span key={g.genre} className="inline-flex items-center gap-1.5 text-xs bg-[#F3EDF7] dark:bg-[#2B2930] px-2.5 py-1 rounded-full"><span className="w-2.5 h-2.5 rounded-full" style={{background:g.color}}/>{g.genre} {g.percentage}%</span>
               ))}
             </div>
+            </>
+            )}
           </div>
           <div>
-            <div className="text-sm font-semibold mb-2">Aylık Aktivite</div>
+            <div className="text-sm font-semibold mb-2">Aylık Aktivite {stats.yearlyActivity.length===0 && <span className="text-xs font-normal text-[#49454F]">— veri yok</span>}</div>
+            {stats.yearlyActivity.length===0 ? (
+              <div className="h-[180px] flex items-center justify-center text-xs text-[#49454F] bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl">Henüz aktivite yok — anime durumunu güncelle</div>
+            ) : (
+            <>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.yearlyActivity}>
@@ -54,7 +64,9 @@ export default function Analytics() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="text-xs text-center text-[#49454F] dark:text-[#CAC4D0] mt-1">2026 izleme frekansı</div>
+            <div className="text-xs text-center text-[#49454F] dark:text-[#CAC4D0] mt-1">Gerçek izleme frekansı • Firestore</div>
+            </>
+            )}
           </div>
         </div>
       </div>
@@ -75,18 +87,13 @@ export default function Analytics() {
 
         <div className="mt-4 space-y-2">
           <div className="text-sm font-semibold">Rozetler</div>
-          {user.badges.map(b=>(
+          {user.badges.length ? user.badges.map(b=>(
             <div key={b.id} className="flex items-center gap-3 p-2.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#E7E0EC]/60 dark:border-[#49454F]/30">
               <span className="w-10 h-10 rounded-xl bg-white dark:bg-[#211F26] flex items-center justify-center text-lg">{b.icon}</span>
               <div><div className="text-sm font-semibold leading-none">{b.name}</div><div className="text-xs text-[#49454F] dark:text-[#CAC4D0]">{b.description}</div></div>
               <span className={`ml-auto text-[10px] font-bold px-2 py-1 rounded-full ${b.rarity==="LEGENDARY"?"bg-[#FFD93D] text-black": b.rarity==="EPIC"?"bg-[#EADDFF] text-[#21005D]":"bg-[#E8DEF8] text-[#1D192B]"}`}>{b.rarity}</span>
             </div>
-          ))}
-        </div>
-
-        <div className="mt-auto pt-4 flex gap-2">
-          <button className="flex-1 h-10 rounded-full bg-[#6750A4] text-white text-sm font-semibold">Banner Değiştir</button>
-          <button className="flex-1 h-10 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm font-medium border border-[#E7E0EC] dark:border-[#49454F]">Çerçeve Seç</button>
+          )) : <div className="text-xs text-[#49454F] dark:text-[#CAC4D0] p-3 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] text-center">Henüz rozet yok — anime ekle, yorum yap, XP kazan!</div>}
         </div>
       </div>
     </div>

@@ -205,3 +205,42 @@ export function subscribeNotifications(uid: string, cb: (items: any[]) => void) 
     cb(items.map(({_ts, ...r})=> r));
   });
 }
+
+// ── Custom Watchlists (user-created) ──
+export async function createCustomList(uid: string, title: string, description: string, isPublic: boolean) {
+  const col = collection(db, "customLists");
+  const ref = await addDoc(col, {
+    userId: uid,
+    title,
+    description,
+    isPublic,
+    animeIds: [],
+    likes: 0,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+export function subscribeCustomLists(uid: string, cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "customLists"), where("userId", "==", uid), limit(20)), (snap) => {
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(), _ts: d.data().createdAt?.toDate?.()?.getTime() || 0 })).sort((a:any,b:any)=> b._ts - a._ts);
+    cb(items.map(({ _ts, ...r }: any) => r));
+  });
+}
+export function subscribePublicLists(cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "customLists"), where("isPublic", "==", true), limit(20)), (snap) => {
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data(), _ts: d.data().createdAt?.toDate?.()?.getTime() || 0 })).sort((a:any,b:any)=> b._ts - a._ts);
+    cb(items.map(({ _ts, ...r }: any) => r));
+  });
+}
+export async function deleteCustomList(listId: string) {
+  await deleteDoc(doc(db, "customLists", listId));
+}
+export async function addAnimeToCustomList(listId: string, tmdbId: number) {
+  const ref = doc(db, "customLists", listId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("Liste bulunamadı");
+  const data = snap.data() as any;
+  const ids = data.animeIds || [];
+  if (ids.includes(tmdbId)) throw new Error("Bu anime zaten listede");
+  await updateDoc(ref, { animeIds: [...ids, tmdbId] });
+}

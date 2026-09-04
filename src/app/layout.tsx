@@ -34,8 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="max-w-[1440px] mx-auto px-4 lg:px-6 py-8 flex flex-col md:flex-row gap-6 justify-between text-sm">
                 <div>
                   <div className="font-black tracking-tight">ANIME PORTAL</div>
-                  <div className="text-[#49454F] dark:text-[#CAC4D0] max-w-md mt-1">Material You • Firestore + Firebase Auth ile tam fonksiyonel • TMDB canlı veri • Sıfır dummy — tüm işlemler gerçek veritabanında. © 2026 Kerim • cizbull Firebase + anime-portal-tmdb-2026 Hosting</div>
-                  <div className="text-xs text-[#79747E] mt-2">This product uses the TMDB API but is not endorsed or certified by TMDB. Auth domain: cizbull.firebaseapp.com</div>
+                  <div className="text-[#49454F] dark:text-[#CAC4D0] max-w-md mt-1">Material You • Firestore Custom Auth ile tam fonksiyonel • TMDB canlı veri • Sıfır dummy — tüm işlemler anime-portal-tmdb-2026 Firestore’unda. © 2026 Kerim • anime-portal-tmdb-2026</div>
+                  <div className="text-xs text-[#79747E] mt-2">This product uses the TMDB API but is not endorsed or certified by TMDB. Project: anime-portal-tmdb-2026</div>
                 </div>
                 <div className="flex gap-8 text-xs">
                   <div><div className="font-bold mb-2">Keşfet</div><div className="space-y-1 text-[#49454F] dark:text-[#CAC4D0]"><div>Trend</div><div>Takvim</div><div>Forum</div></div></div>

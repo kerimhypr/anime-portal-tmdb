@@ -1,27 +1,17 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// cizbull project – fully functional Auth + Firestore (anime-portal-tmdb-2026 hosting will use same via authorizedDomains)
+// anime-portal-tmdb-2026 – PRIMARY project (hosting + Firestore). Auth is CUSTOM via Firestore (no Identity Toolkit dependency) to avoid cizbull touch.
 const firebaseConfig = {
-  apiKey: "AIzaSyAXcTKy3Iyt5cDB0yV8z0TIUbkGsajNwZE",
-  authDomain: "cizbull.firebaseapp.com",
-  projectId: "cizbull",
-  storageBucket: "cizbull.firebasestorage.app",
-  messagingSenderId: "119509862971",
-  appId: "1:119509862971:web:28b8a0bbb6b1c758062a1e",
-  databaseURL: "https://cizbull-default-rtdb.europe-west1.firebasedatabase.app",
+  apiKey: "AIzaSyB1h8PIXvjUoMsIEa4WZAmUXJDNAKojjiE",
+  authDomain: "anime-portal-tmdb-2026.firebaseapp.com",
+  projectId: "anime-portal-tmdb-2026",
+  storageBucket: "anime-portal-tmdb-2026.firebasestorage.app",
+  messagingSenderId: "116833109660",
+  appId: "1:116833109660:web:6d699ae40113b3a6410f59",
 };
 
-// Fallback config for anime-portal host (if you prefer to isolate, but we reuse cizbull to keep Auth working cross-host)
-// To switch to anime-portal-tmdb-2026 project's Firestore/Auth once its Identity Toolkit config is created, just change projectId/apiKey.
-// See src/lib/firebase.ts header for docs.
-
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const googleProvider = new GoogleAuthProvider();
-// Force language
-auth.useDeviceLanguage();

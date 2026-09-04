@@ -44,27 +44,49 @@ function genStats(list: WatchlistEntry[]): WatchStats {
   const totalEpisodesWatching = list.filter((l) => l.status === "WATCHING").reduce((a, c) => a + (c.currentEpisode || 0), 0);
   const totalEp = episodes + totalEpisodesWatching;
   const { hours, days, minutes } = calcWatchTime(totalEp, 24, movies, 110);
-  // derive genre breakdown from watchlist anime genres if available else mock
+  // derive genre breakdown from watchlist anime genres – if empty, return empty (no dummy)
   const genreCount: Record<string, number> = {};
   list.forEach((e) => {
-    const g = e.anime?.genres?.[0]?.name || "Action";
-    genreCount[g] = (genreCount[g] || 0) + 1;
+    const genres = e.anime?.genres;
+    if (genres && genres.length) {
+      genres.forEach((g: any) => {
+        const name = g.name;
+        genreCount[name] = (genreCount[name] || 0) + 1;
+      });
+    } else {
+      const g = "Bilinmeyen";
+      genreCount[g] = (genreCount[g] || 0) + 1;
+    }
   });
-  if (Object.keys(genreCount).length === 0) {
-    genreCount["Action"] = 32;
-    genreCount["Fantasy"] = 24;
-    genreCount["Drama"] = 18;
-    genreCount["Sci-Fi"] = 14;
-    genreCount["Comedy"] = 12;
-  }
   const total = Object.values(genreCount).reduce((a, b) => a + b, 0);
-  const colorMap: Record<string, string> = { Action: "#FF6B9D", Fantasy: "#6BCB77", Drama: "#9C27B0", "Sci-Fi": "#00D9FF", Comedy: "#FFD93D", Adventure: "#00D9FF", Romance: "#E91E63" };
+  const colorMap: Record<string, string> = { Action: "#FF6B9D", Fantasy: "#6BCB77", Drama: "#9C27B0", "Sci-Fi": "#00D9FF", Comedy: "#FFD93D", Adventure: "#00D9FF", Romance: "#E91E63", "Science Fiction": "#00D9FF", Animation: "#6750A4", Mystery: "#607D8B", Horror: "#795548" };
   const breakdown = Object.entries(genreCount).map(([g, c]) => ({
     genre: g,
     count: c as number,
-    percentage: Math.round(((c as number) / total) * 100),
+    percentage: total ? Math.round(((c as number) / total) * 100) : 0,
     color: colorMap[g] || "#6750A4",
   }));
+
+  // yearly activity: group by month from updatedAt (real data)
+  const monthNames = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+  const monthCounts: Record<string, number> = {};
+  monthNames.forEach((m) => (monthCounts[m] = 0));
+  let hasRealDates = false;
+  list.forEach((e) => {
+    try {
+      const d = new Date(e.updatedAt);
+      if (!isNaN(d.getTime())) {
+        const idx = d.getMonth();
+        monthCounts[monthNames[idx]]++;
+        hasRealDates = true;
+      }
+    } catch {}
+  });
+  // only show months that have data, or if no data show current month with 0 + empty state
+  const yearlyActivity = hasRealDates
+    ? monthNames.map((m) => ({ month: m, count: monthCounts[m] })).filter((x) => x.count > 0 || list.length < 3) // keep empty months minimal if small list
+    : [];
+
   return {
     totalCompleted: completed.length,
     totalMoviesCompleted: movies,
@@ -74,14 +96,7 @@ function genStats(list: WatchlistEntry[]): WatchStats {
     totalHours: hours,
     totalDays: days,
     genreBreakdown: breakdown,
-    yearlyActivity: [
-      { month: "Oca", count: 12 },
-      { month: "Şub", count: 19 },
-      { month: "Mar", count: 8 },
-      { month: "Nis", count: 15 },
-      { month: "May", count: 22 },
-      { month: "Haz", count: 17 },
-    ],
+    yearlyActivity,
   };
 }
 
@@ -253,11 +268,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const markRead = (id: string) => setNotifications((n) => n.map((x) => (x.id === id ? { ...x, isRead: true } : x)));
   const markAllRead = () => setNotifications((n) => n.map((x) => ({ ...x, isRead: true })));
 
-  // stats
-  const stats = genStats(watchlist.length ? watchlist : []);
-
-  // if empty, show demo-ish but real: if no watchlist, don't fake 247 – show 0 but keep genre chart placeholder
-  const displayStats: WatchStats = watchlist.length === 0 ? { ...stats, totalCompleted: 0, totalMoviesCompleted: 0, currentlyWatching: 0, totalEpisodesWatched: 0, totalMinutes: 0, totalHours: 0, totalDays: 0 } : stats;
+  // stats – fully real, no dummy fallback
+  const stats = genStats(watchlist);
 
   // user mapping
   const user: User = appUser
@@ -277,7 +289,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
     : mockUserFallback;
 
-  return <Ctx.Provider value={{ theme, setTheme, user, watchlist, toggleWatch, updateStatus, notifications, markRead, markAllRead, stats: displayStats }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ theme, setTheme, user, watchlist, toggleWatch, updateStatus, notifications, markRead, markAllRead, stats }}>{children}</Ctx.Provider>;
 }
 export const useStore = () => {
   const c = useContext(Ctx);
