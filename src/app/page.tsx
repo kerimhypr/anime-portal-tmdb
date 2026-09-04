@@ -1,113 +1,143 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useState } from "react";
+import Hero from "@/components/Hero";
+import { AnimeRail } from "@/components/AnimeCard";
+import BroadcastCalendar from "@/components/BroadcastCalendar";
+import Forum from "@/components/Forum";
+import Shoutbox from "@/components/Shoutbox";
+import Analytics from "@/components/Analytics";
+import FilterModal from "@/components/FilterModal";
+import { tmdb } from "@/lib/tmdb";
+import { createRequest } from "@/lib/firestore";
+import { useAuth } from "@/lib/auth";
+import { SlidersHorizontal, Film, Tv } from "lucide-react";
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
+  const { user } = useAuth();
+  const [trending, setTrending] = useState<any[]>([]);
+  const [animePop, setAnimePop] = useState<any[]>([]);
+  const [moviePop, setMoviePop] = useState<any[]>([]);
+  const [topTv, setTopTv] = useState<any[]>([]);
+  const [topMovies, setTopMovies] = useState<any[]>([]);
+  const [onAir, setOnAir] = useState<any[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<any>({ genreInclude:[16] });
+  const [loading,setLoading]=useState(true);
+  const [reqName,setReqName]=useState("");
+  const [reqLink,setReqLink]=useState("");
+  const [reqDetails,setReqDetails]=useState("");
+  const [reqSending,setReqSending]=useState(false);
+
+  async function load() {
+    setLoading(true);
+    try{
+      const [tr, popTv, popMv, topT, topM, air] = await Promise.all([
+        tmdb.trendingAnime(),
+        tmdb.discoverAnime(1, filters),
+        tmdb.discoverAnimeMovies(1, filters),
+        tmdb.topRatedTv(),
+        tmdb.topRatedMovies(),
+        tmdb.onTheAir(),
+      ]);
+      // filter japanese-ish
+      const jp = (tr.results||[]).filter((x:any)=> x.original_language==="ja" || true).slice(0,6);
+      setTrending(jp.length? jp : (popTv.results||[]).slice(0,6));
+      setAnimePop(popTv.results||[]);
+      setMoviePop(popMv.results||[]);
+      setTopTv(topT.results||[]);
+      setTopMovies(topM.results||[]);
+      setOnAir(air.results||[]);
+    }catch(e){ console.error(e); }
+    setLoading(false);
+  }
+
+  useEffect(()=>{ load(); },[filters]);
+  useEffect(()=>{
+    const sp = new URLSearchParams(window.location.search);
+    if(sp.get("random")==="1"){
+      // handled via button elsewhere; still could random navigate
+    }
+  },[]);
+
+  if(loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-[520px] rounded-[28px] bg-[#F3EDF7] dark:bg-[#211F26]"/>
+        <div className="h-40 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26]"/>
+        <div className="h-40 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26]"/>
+      </div>
+    );
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className="space-y-8">
+      <Hero featured={trending} />
+
+      {/* quick stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {k:"TV Series", v:`${animePop.length}+`, d:"Japon Animesi", icon:Tv, c:"bg-[#EADDFF] text-[#21005D]"},
+          {k:"Anime Movies", v:`${moviePop.length}+`, d:"Sinema Filmleri", icon:Film, c:"bg-[#FFD8E4] text-[#31111D]"},
+          {k:"Sıfır Manga", v:"0", d:"Yalnızca Anime", icon:Tv, c:"bg-[#E8DEF8] text-[#1D192B]"},
+          {k:"TMDB", v:"Canlı", d:"Güncel Metadata", icon:Film, c:"bg-[#FFF9C4] text-[#31111D]"},
+        ].map(card=>(
+          <div key={card.k} className="rounded-2xl p-4 bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#2B2930] flex items-center gap-3">
+            <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.c}`}><card.icon className="w-5 h-5"/></span>
+            <div><div className="text-xs text-[#49454F] dark:text-[#CAC4D0]">{card.k}</div><div className="font-black leading-none">{card.v}</div><div className="text-xs text-[#49454F]">{card.d}</div></div>
+          </div>
+        ))}
+      </div>
+
+      {/* filter bar */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <button onClick={()=>setFilterOpen(true)} className="inline-flex items-center gap-2 px-4 h-11 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] text-sm font-medium shadow-sm"><SlidersHorizontal className="w-4 h-4"/> Filtrele • Tür / Yıl / Puan / Format</button>
+        <div className="flex gap-2">
+          <span className="px-3 py-1.5 rounded-full bg-[#6750A4] text-white text-xs font-bold">Format: {filters.format||"ALL"}</span>
+          {filters.year && <span className="px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-xs font-medium">Yıl: {filters.year}</span>}
+          {filters.voteGte>0 && <span className="px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-xs">Puan ≥ {filters.voteGte}</span>}
         </div>
+        <Link href="/discover" className="ml-auto text-sm font-medium text-[#6750A4] dark:text-[#D0BCFF] hover:underline">Gelişmiş Keşif →</Link>
       </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
+      <AnimeRail title="🔥 Haftanın Trend Animeleri (TV)" items={animePop.slice(0,12)} format="tv" href="/discover?format=TV" />
+      <AnimeRail title="🎬 Anime Filmleri — Sinema Seçkisi" items={moviePop.slice(0,12)} format="movie" href="/discover?format=MOVIE" />
+      <AnimeRail title="⭐ En Yüksek Puanlılar — TV" items={topTv.slice(0,12)} format="tv" />
+      <AnimeRail title="🏆 En Yüksek Puanlı Filmler" items={topMovies.slice(0,12)} format="movie" />
+
+      <BroadcastCalendar items={onAir.slice(0,21)} />
+
+      <div className="grid lg:grid-cols-[1.7fr_0.9fr] gap-6">
+        <Forum />
+        <Shoutbox />
       </div>
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+      <Analytics />
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+      {/* request system - REAL Firestore */}
+      <div className="m3-card p-6 bg-gradient-to-br from-[#F3EDF7] to-[#EADDFF]/50 dark:from-[#211F26] dark:to-[#2B2930]">
+        <h3 className="font-bold text-lg">İçerik İsteği • Eksik Anime Bildir <span className="text-xs font-normal bg-white dark:bg-[#2B2930] px-2 py-1 rounded-full ml-2">Firestore canlı</span></h3>
+        <p className="text-sm text-[#49454F] dark:text-[#CAC4D0]">Listede olmayan bir anime/film mi var? Ya da hatalı bilgi mi gördün? Ekibimize ilet, 24 saat içinde ekleyelim. ({user?"Giriş yapıldı, Firestore’a yazılacak":"Misafir olarak da gönderebilirsin"})</p>
+        <form onSubmit={async(e)=>{ e.preventDefault(); if(!reqName.trim()) return; setReqSending(true); try{ await createRequest(user?.uid||null, reqName, reqLink, reqDetails); alert("İsteğiniz Firestore’a kaydedildi! Teşekkürler 🙏"); setReqName(""); setReqLink(""); setReqDetails(""); }catch(err:any){ alert(err.message);} finally{ setReqSending(false);} }} className="grid md:grid-cols-2 gap-3 mt-4">
+          <input value={reqName} onChange={e=>setReqName(e.target.value)} required placeholder="Anime / Film adı" className="h-11 rounded-xl px-4 bg-white dark:bg-[#141218] border border-[#E7E0EC] dark:border-[#49454F] text-sm outline-none focus:border-[#6750A4]"/>
+          <input value={reqLink} onChange={e=>setReqLink(e.target.value)} placeholder="TMDB / MAL linki (opsiyonel)" className="h-11 rounded-xl px-4 bg-white dark:bg-[#141218] border border-[#E7E0EC] dark:border-[#49454F] text-sm outline-none"/>
+          <textarea value={reqDetails} onChange={e=>setReqDetails(e.target.value)} placeholder="Detaylar / düzeltme..." className="md:col-span-2 min-h-[90px] rounded-xl p-3 bg-white dark:bg-[#141218] border border-[#E7E0EC] dark:border-[#49454F] text-sm outline-none"/>
+          <button disabled={reqSending} className="m3-button md:col-span-2 disabled:opacity-60">{reqSending?"Gönderiliyor...":"Gönder • Firestore Request"}</button>
+        </form>
       </div>
-    </main>
+
+      <FilterModal open={filterOpen} onClose={()=>setFilterOpen(false)} onApply={setFilters} initial={filters}/>
+
+      {/* FAB random */}
+      <button onClick={async()=>{
+        const all = [...animePop, ...moviePop];
+        const pick = all[Math.floor(Math.random()*all.length)];
+        if(!pick) return;
+        const isM = !!pick.title;
+        window.location.href = isM? `/movie/${pick.id}` : `/anime/${pick.id}`;
+      }} className="fixed bottom-6 right-6 m3-fab shadow-m3-3 z-40">
+        🎲 Surprise Me
+      </button>
+    </div>
   );
 }

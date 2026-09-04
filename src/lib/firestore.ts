@@ -1,0 +1,207 @@
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+  serverTimestamp,
+  increment,
+  updateDoc,
+  addDoc,
+} from "firebase/firestore";
+import { db } from "./firebase";
+
+// ── Watchlist ──
+export type WatchStatus = "WATCHING" | "COMPLETED" | "ON_HOLD" | "DROPPED" | "PLAN_TO_WATCH";
+export function watchlistCol(uid: string) {
+  return collection(db, "users", uid, "watchlist");
+}
+export async function upsertWatchlist(uid: string, tmdbId: number, data: any) {
+  const ref = doc(db, "users", uid, "watchlist", String(tmdbId));
+  await setDoc(ref, { ...data, tmdbId, updatedAt: serverTimestamp() }, { merge: true });
+}
+export async function removeWatchlist(uid: string, tmdbId: number) {
+  await deleteDoc(doc(db, "users", uid, "watchlist", String(tmdbId)));
+}
+export function subscribeWatchlist(uid: string, cb: (items: any[]) => void) {
+  return onSnapshot(query(watchlistCol(uid), orderBy("updatedAt", "desc")), (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  });
+}
+
+// ── Comments ──
+export async function addComment(animeId: number, author: any, content: string, isSpoiler: boolean, gifUrl?: string, parentId: string | null = null) {
+  const col = collection(db, "comments");
+  const docRef = await addDoc(col, {
+    animeId,
+    parentId,
+    author: {
+      uid: author.uid,
+      displayName: author.displayName,
+      username: author.username,
+      photoURL: author.photoURL,
+      level: author.level || 1,
+    },
+    content,
+    isSpoiler,
+    gifUrl: gifUrl || null,
+    upvotes: 0,
+    downvotes: 0,
+    createdAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+export function subscribeComments(animeId: number, cb: (items: any[]) => void) {
+  // avoid composite index: fetch by animeId and sort client-side
+  const q = query(collection(db, "comments"), where("animeId", "==", animeId), limit(100));
+  return onSnapshot(q, (snap) => {
+    const docs: any[] = snap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString(), _ts: d.data().createdAt?.toDate?.()?.getTime() || 0 })).sort((a:any,b:any)=> b._ts - a._ts);
+    // build tree
+    const map = new Map<string, any>();
+    docs.forEach((d) => map.set(d.id, { ...d, replies: [] }));
+    const roots: any[] = [];
+    docs.forEach((d) => {
+      if (d.parentId && map.has(d.parentId)) map.get(d.parentId).replies.push(map.get(d.id));
+      else roots.push(map.get(d.id));
+    });
+    cb(roots);
+  });
+}
+export async function voteComment(commentId: string, deltaUp: number, deltaDown: number) {
+  const ref = doc(db, "comments", commentId);
+  await updateDoc(ref, { upvotes: increment(deltaUp), downvotes: increment(deltaDown) });
+}
+
+// ── Forum ──
+export async function createThread(author: any, title: string, content: string, tag: string, animeId?: number) {
+  const col = collection(db, "forumThreads");
+  const ref = await addDoc(col, {
+    title,
+    content,
+    tag,
+    animeId: animeId || null,
+    author: {
+      uid: author.uid,
+      displayName: author.displayName,
+      username: author.username,
+      photoURL: author.photoURL,
+    },
+    likes: 0,
+    replies: 0,
+    views: 0,
+    isPinned: false,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+export function subscribeThreads(cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "forumThreads"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
+    cb(
+      snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString(),
+        created: new Date(d.data().createdAt?.toDate?.() || Date.now()).toLocaleString("tr-TR"),
+      }))
+    );
+  });
+}
+export async function replyThread(threadId: string, author: any, content: string) {
+  const col = collection(db, "forumThreads", threadId, "replies");
+  await addDoc(col, {
+    author: { uid: author.uid, displayName: author.displayName, username: author.username, photoURL: author.photoURL },
+    content,
+    createdAt: serverTimestamp(),
+    likes: 0,
+  });
+  await updateDoc(doc(db, "forumThreads", threadId), { replies: increment(1) });
+}
+
+// ── Shoutbox ──
+export async function sendShout(author: any, text: string) {
+  await addDoc(collection(db, "shoutbox"), {
+    uid: author.uid,
+    user: author.username || author.displayName,
+    displayName: author.displayName,
+    avatar: author.photoURL,
+    text,
+    createdAt: serverTimestamp(),
+  });
+}
+export function subscribeShoutbox(cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "shoutbox"), orderBy("createdAt", "desc"), limit(50)), (snap) => {
+    const items = snap.docs
+      .map((d) => ({
+        id: d.id,
+        ...d.data(),
+        time: (d.data().createdAt?.toDate?.() || new Date()).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+      }))
+      .reverse();
+    cb(items);
+  });
+}
+
+// ── Reviews ──
+export async function addReview(animeId: number, author: any, rating: number, title: string, content: string, isSpoiler: boolean) {
+  await addDoc(collection(db, "reviews"), {
+    animeId,
+    author: { uid: author.uid, displayName: author.displayName, username: author.username, photoURL: author.photoURL },
+    rating,
+    title,
+    content,
+    isSpoiler,
+    helpful: 0,
+    notHelpful: 0,
+    createdAt: serverTimestamp(),
+  });
+  // also give XP
+  try {
+    await updateDoc(doc(db, "users", author.uid), { xp: increment(50) });
+  } catch {}
+}
+export function subscribeReviews(animeId: number, cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "reviews"), where("animeId", "==", animeId), limit(20)), (snap) => {
+    const items = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString(),
+        _ts: d.data().createdAt?.toDate?.()?.getTime() || 0,
+      })).sort((a,b)=> b._ts - a._ts);
+    // strip _ts
+    cb(items.map(({_ts, ...rest})=> rest));
+  });
+}
+export async function voteReview(reviewId: string, helpful: boolean) {
+  await updateDoc(doc(db, "reviews", reviewId), { [helpful ? "helpful" : "notHelpful"]: increment(1) });
+}
+
+// ── Requests ──
+export async function createRequest(uid: string | null, name: string, link: string, details: string) {
+  await addDoc(collection(db, "requests"), {
+    uid: uid || "anon",
+    name,
+    link,
+    details,
+    status: "pending",
+    createdAt: serverTimestamp(),
+  });
+}
+
+// ── Notifications ── (simplified: global per user)
+export function subscribeNotifications(uid: string, cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "notifications"), where("userId", "==", uid), limit(20)), (snap) => {
+    const items = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString(),
+        _ts: d.data().createdAt?.toDate?.()?.getTime() || 0,
+      })).sort((a,b)=> b._ts - a._ts);
+    cb(items.map(({_ts, ...r})=> r));
+  });
+}
