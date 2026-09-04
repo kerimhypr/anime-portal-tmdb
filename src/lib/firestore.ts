@@ -112,11 +112,12 @@ export function subscribeThreads(cb: (items: any[]) => void) {
     );
   });
 }
-export async function replyThread(threadId: string, author: any, content: string) {
+export async function replyThread(threadId: string, author: any, content: string, parentId: string | null = null) {
   const col = collection(db, "forumThreads", threadId, "replies");
   await addDoc(col, {
     author: { uid: author.uid, displayName: author.displayName, username: author.username, photoURL: author.photoURL },
     content,
+    parentId: parentId || null,
     createdAt: serverTimestamp(),
     likes: 0,
   });

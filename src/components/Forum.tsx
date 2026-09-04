@@ -20,6 +20,8 @@ export default function Forum() {
   const [selected, setSelected] = useState<any | null>(null);
   const [replies, setReplies] = useState<any[]>([]);
   const [replyText, setReplyText] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyToName, setReplyToName] = useState<string | null>(null);
   const [liking, setLiking] = useState(false);
 
   useEffect(() => {
@@ -56,8 +58,10 @@ export default function Forum() {
     if (!replyText.trim()) return;
     if (!user || !appUser) { setAuthOpen(true); return; }
     if (!selected) return;
-    await replyThread(selected.id, appUser, replyText);
+    await replyThread(selected.id, appUser, replyText, replyTo);
     setReplyText("");
+    setReplyTo(null);
+    setReplyToName(null);
   };
 
   const openThread = async (t:any) => {
@@ -81,53 +85,96 @@ export default function Forum() {
   };
 
   if (selected) {
+    // build nested tree for replies
+    const topLevel = replies.filter((r:any)=> !r.parentId);
+    const childrenMap = new Map<string, any[]>();
+    replies.forEach((r:any)=> {
+      if(r.parentId){
+        const arr = childrenMap.get(r.parentId) || [];
+        arr.push(r);
+        childrenMap.set(r.parentId, arr);
+      }
+    });
     return (
       <div className="m3-card overflow-hidden">
-        <div className="p-4 flex items-center gap-3 border-b border-[#E7E0EC] dark:border-[#2B2930]">
-          <button onClick={closeThread} className="w-9 h-9 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] flex items-center justify-center"><ArrowLeft className="w-4 h-4"/></button>
+        <div className="p-4 flex items-center gap-3 border-b border-[#E7E0EC] dark:border-[#2B2930] bg-[#F3EDF7]/30 dark:bg-[#2B2930]/30">
+          <button onClick={closeThread} className="w-9 h-9 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] flex items-center justify-center hover:bg-[#E8DEF8]"><ArrowLeft className="w-4 h-4"/></button>
           <div className="font-bold">Konuya Dön</div>
-          <a href={`/forum/${selected.id}`} onClick={(e)=> e.preventDefault()} className="ml-auto text-xs text-[#6750A4] underline hidden">Paylaş</a>
+          <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-[#EADDFF] text-[#21005D] font-medium">{selected.tag ? TAGS[selected.tag] : ""}</span>
         </div>
         <div className="p-5">
           <div className="flex gap-3">
-            <img src={selected.author?.photoURL || `https://i.pravatar.cc/150?img=12`} alt="" className="w-10 h-10 rounded-full object-cover shrink-0"/>
+            <img src={selected.author?.photoURL || `https://i.pravatar.cc/150?img=12`} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-[#EADDFF]"/>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${selected.tag==="SPOILERS"?"bg-[#BA1A1A] text-white": selected.tag==="THEORY"?"bg-[#6750A4] text-white":"bg-[#F3EDF7] dark:bg-[#2B2930]"}`}>{TAGS[selected.tag]||selected.tag}</span>
-                <span className="text-xs text-[#49454F]">@{selected.author?.username} • {selected.created}</span>
+                <span className="text-sm font-bold">{selected.author?.displayName || selected.author?.username}</span>
+                <span className="text-xs text-[#49454F]">@{selected.author?.username}</span>
+                <span className="text-xs text-[#79747E]">• {selected.created}</span>
               </div>
-              <h2 className="text-xl font-black leading-tight mt-2">{selected.title}</h2>
-              <p className="text-sm text-[#49454F] dark:text-[#CAC4D0] mt-3 whitespace-pre-wrap leading-relaxed">{selected.content}</p>
+              <h2 className="text-xl font-black leading-tight mt-1">{selected.title}</h2>
+              <p className="text-sm text-[#1C1B1F] dark:text-[#E6E0E9] mt-3 whitespace-pre-wrap leading-relaxed bg-[#F3EDF7] dark:bg-[#211F26] rounded-2xl p-4 border border-[#E7E0EC]/50">{selected.content}</p>
               <div className="flex items-center gap-2 mt-4">
-                <button onClick={()=> handleLike(selected)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] text-sm font-medium"><Heart className="w-4 h-4"/> {selected.likes||0} Beğen</button>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm"><MessageSquare className="w-4 h-4"/> {replies.length} yanıt</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm"><Eye className="w-4 h-4"/> {selected.views||0}</span>
+                <button onClick={()=> handleLike(selected)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] hover:bg-[#EADDFF] hover:border-[#6750A4] text-sm font-medium transition"><Heart className="w-4 h-4"/> {selected.likes||0} Beğen</button>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm border border-transparent"><MessageSquare className="w-4 h-4"/> {replies.length} yanıt</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 space-y-3">
-            <h3 className="font-bold flex items-center gap-2">Yanıtlar <span className="text-xs font-normal bg-[#E8DEF8] px-2 py-1 rounded-full">{replies.length}</span></h3>
-            {replies.length===0 ? <div className="p-6 text-center text-sm text-[#49454F] bg-[#F3EDF7]/50 dark:bg-[#2B2930]/50 rounded-2xl">Henüz yanıt yok — ilk yanıtı sen yaz!</div> :
-              replies.map((r:any)=>(
-                <div key={r.id} className="flex gap-3 p-3 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#E7E0EC]/50">
-                  <img src={r.author?.photoURL || `https://i.pravatar.cc/150?u=${r.author?.uid}`} alt="" className="w-8 h-8 rounded-full shrink-0 object-cover"/>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2"><span className="text-sm font-semibold">{r.author?.displayName || r.author?.username}</span><span className="text-xs text-[#79747E]">{new Date(r.createdAt).toLocaleString("tr-TR")}</span></div>
-                    <div className="text-sm mt-1 whitespace-pre-wrap">{r.content}</div>
+          <div className="mt-6">
+            <h3 className="font-bold flex items-center gap-2">Yanıtlar <span className="text-xs font-bold bg-[#6750A4] text-white px-2.5 py-1 rounded-full">{replies.length}</span></h3>
+            {replies.length===0 ? <div className="mt-3 p-6 text-center text-sm text-[#49454F] bg-[#F3EDF7]/60 dark:bg-[#2B2930]/60 rounded-2xl border border-dashed">Henüz yanıt yok — ilk yanıtı sen yaz!</div> : (
+              <div className="mt-3 space-y-3">
+                {topLevel.map((r:any)=> (
+                  <div key={r.id} className="rounded-2xl bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#2B2930] overflow-hidden">
+                    <div className="flex gap-3 p-4">
+                      <img src={r.author?.photoURL || `https://i.pravatar.cc/150?u=${r.author?.uid}`} alt="" className="w-9 h-9 rounded-full shrink-0 object-cover border border-[#E7E0EC]"/>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap"><span className="text-sm font-bold">{r.author?.displayName || r.author?.username}</span><span className="text-xs bg-[#E8DEF8] dark:bg-[#4F378B] text-[#21005D] dark:text-white px-2 py-0.5 rounded-full">Lv.1</span><span className="text-xs text-[#79747E]">{new Date(r.createdAt).toLocaleString("tr-TR")}</span></div>
+                        <div className="text-sm mt-1.5 leading-relaxed whitespace-pre-wrap">{r.content}</div>
+                        <button onClick={()=> { setReplyTo(r.id); setReplyToName(r.author?.displayName || r.author?.username); setTimeout(()=> document.getElementById("reply-input")?.focus(), 50); }} className="mt-2 text-xs font-semibold text-[#6750A4] hover:underline inline-flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Yanıtla</button>
+                      </div>
+                    </div>
+                    {(childrenMap.get(r.id) || []).length>0 && (
+                      <div className="ml-4 mr-2 mb-3 space-y-2 border-l-2 border-[#EADDFF] dark:border-[#4F378B] pl-3">
+                        {(childrenMap.get(r.id) || []).map((child:any)=> (
+                          <div key={child.id} className="flex gap-2.5 p-3 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#E7E0EC]/40">
+                            <img src={child.author?.photoURL || `https://i.pravatar.cc/150?u=${child.author?.uid}`} alt="" className="w-7 h-7 rounded-full shrink-0 object-cover"/>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5"><span className="text-xs font-bold">{child.author?.displayName}</span><span className="text-[11px] text-[#79747E]">{new Date(child.createdAt).toLocaleString("tr-TR")}</span></div>
+                              <div className="text-xs mt-1 whitespace-pre-wrap leading-relaxed"><span className="text-[#6750A4] font-semibold">@{r.author?.username} </span>{child.content}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 m3-card p-3 bg-[#F3EDF7]/50 dark:bg-[#2B2930]/30 border border-[#E7E0EC] dark:border-[#49454F]">
+            {replyTo && (
+              <div className="mb-2 flex items-center justify-between text-xs bg-[#EADDFF] dark:bg-[#4F378B] text-[#21005D] dark:text-white px-3 py-1.5 rounded-full">
+                <span>↳ <b>{replyToName}</b> kişisine yanıt yazıyorsun</span>
+                <button onClick={()=> { setReplyTo(null); setReplyToName(null); }} className="font-bold hover:underline">İptal ✕</button>
+              </div>
+            )}
+            <div className="flex gap-3 items-end">
+              <img src={appUser?.photoURL || user?.photoURL || `https://i.pravatar.cc/300?img=68`} alt="" className="w-9 h-9 rounded-full hidden sm:block object-cover shrink-0 border-2 border-white shadow"/>
+              <div className="flex-1">
+                <textarea id="reply-input" value={replyText} onChange={e=> setReplyText(e.target.value)} onKeyDown={e=> { if(e.key==="Enter" && (e.ctrlKey||e.metaKey)) handleReply(); }} rows={2} placeholder={user? (replyTo ? `${replyToName} için yanıt...` : "Düşünceni yaz, toplulukla tartış...") : "Giriş yap ve yanıt yaz..."} className="w-full min-h-[44px] max-h-[120px] rounded-2xl bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] px-4 py-3 text-sm outline-none focus:border-[#6750A4] focus:ring-2 focus:ring-[#EADDFF] resize-none"/>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-[11px] text-[#79747E]">Ctrl+Enter ile gönder • Yanıta yanıt verilebilir</span>
+                  <div className="flex gap-2">
+                    {replyTo && <button onClick={()=> { setReplyTo(null); setReplyToName(null); }} className="px-4 h-9 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] text-sm font-medium">İptal</button>}
+                    <button onClick={handleReply} disabled={!replyText.trim()} className="px-5 h-9 rounded-full bg-[#6750A4] text-white text-sm font-bold inline-flex items-center gap-1.5 hover:bg-[#4F378B] disabled:opacity-50 disabled:cursor-not-allowed"><Send className="w-4 h-4"/>{replyTo ? "Yanıtı Gönder" : "Yanıtla"}</button>
                   </div>
                 </div>
-              ))}
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <img src={appUser?.photoURL || user?.photoURL || `https://i.pravatar.cc/300?img=68`} alt="" className="w-8 h-8 rounded-full hidden sm:block object-cover"/>
-            <div className="flex-1 flex gap-2">
-              <input value={replyText} onChange={e=> setReplyText(e.target.value)} onKeyDown={e=> e.key==="Enter" && handleReply()} placeholder={user? "Yanıt yaz... birbirinize cevap verin" : "Giriş yap ve yanıt yaz..."} className="flex-1 h-11 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F] px-4 text-sm outline-none focus:border-[#6750A4]"/>
-              <button onClick={handleReply} className="w-11 h-11 rounded-full bg-[#6750A4] text-white flex items-center justify-center shrink-0"><Send className="w-4 h-4"/></button>
+              </div>
             </div>
           </div>
-          {!user && <button onClick={()=> setAuthOpen(true)} className="mt-3 text-sm font-semibold text-[#6750A4] underline">Giriş yap ve katıl</button>}
+          {!user && <button onClick={()=> setAuthOpen(true)} className="mt-3 w-full h-10 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] text-sm font-semibold hover:bg-[#F3EDF7]">Giriş yap ve katıl</button>}
         </div>
         <AuthModal open={authOpen} onClose={()=> setAuthOpen(false)} />
       </div>
