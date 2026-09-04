@@ -145,7 +145,7 @@ export default function ProfilePage(){
                   <div className="text-xs text-[#49454F] mt-2">{l.animeIds?.length||0} anime • {new Date(l.createdAt).toLocaleDateString("tr-TR")}</div>
                 </div>
                 <div className="p-3 pt-0 flex gap-2">
-                  <Link href="/watchlist" className="flex-1 h-8 rounded-full bg-[#6750A4] text-white text-xs font-semibold flex items-center justify-center">Görüntüle</Link>
+                  <Link href={`/lists/${l.id}`} className="flex-1 h-8 rounded-full bg-[#6750A4] text-white text-xs font-semibold flex items-center justify-center">Görüntüle</Link>
                   <button onClick={async()=>{ if(confirm("Listeyi silmek istiyor musun?")) await deleteCustomList(l.id); }} className="w-8 h-8 rounded-full bg-white dark:bg-[#211F26] border flex items-center justify-center text-[#BA1A1A]"><Trash2 className="w-4 h-4"/></button>
                 </div>
               </div>

@@ -247,15 +247,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateStatus = async (id: number, status: WatchStatus, episode?: number, score?: number) => {
+    // clamp episode to valid range
+    const currentForClamp = watchlist.find((w) => w.tmdbId === id);
+    const maxEp = currentForClamp?.totalEpisodes || currentForClamp?.anime?.numberOfEpisodes || 24;
+    let clampedEp = episode;
+    if (clampedEp !== undefined) {
+      clampedEp = Math.max(0, Math.min(maxEp, clampedEp));
+      // auto complete if reached max
+      if (clampedEp >= maxEp && status === "WATCHING") status = "COMPLETED";
+    }
     if (!fbUser) {
-      setWatchlist((prev) => prev.map((e) => (e.tmdbId === id ? { ...e, status, currentEpisode: episode ?? e.currentEpisode, score: score ?? e.score, progress: status === "COMPLETED" ? 100 : e.progress, updatedAt: new Date().toISOString() } : e)));
+      setWatchlist((prev) => prev.map((e) => {
+        if (e.tmdbId !== id) return e;
+        const me = Math.max(0, Math.min(e.totalEpisodes || 24, clampedEp ?? e.currentEpisode));
+        return { ...e, status, currentEpisode: me, score: score ?? e.score, progress: status === "COMPLETED" ? 100 : Math.round((me / (e.totalEpisodes || 24)) * 100), updatedAt: new Date().toISOString() };
+      }));
       return;
     }
-    const current = watchlist.find((w) => w.tmdbId === id);
+    const current = currentForClamp;
     const patch: any = { status, updatedAt: serverTimestamp() };
-    if (episode !== undefined) patch.currentEpisode = episode;
+    if (clampedEp !== undefined) patch.currentEpisode = clampedEp;
     if (score !== undefined) patch.score = score;
     if (status === "COMPLETED") patch.progress = 100;
+    else if (clampedEp !== undefined) patch.progress = Math.round((clampedEp / maxEp) * 100);
     await upsertWatchlist(fbUser.uid, id, { ...current, ...patch, status });
     // also update xp/level
     if (status === "COMPLETED") {

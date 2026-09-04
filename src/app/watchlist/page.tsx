@@ -58,15 +58,15 @@ export default function WatchlistPage(){
                     <span className="text-xs">Bölüm</span>
                     <button onClick={()=>updateStatus(e.tmdbId, e.status, Math.max(0,e.currentEpisode-1))} className="w-7 h-7 rounded-full bg-[#E8DEF8] dark:bg-[#4F378B] flex items-center justify-center text-sm font-bold">−</button>
                     <span className="text-sm font-bold min-w-[24px] text-center">{e.currentEpisode}</span>
-                    <button onClick={()=>updateStatus(e.tmdbId, e.status, e.currentEpisode+1)} className="w-7 h-7 rounded-full bg-[#6750A4] text-white flex items-center justify-center text-sm font-bold">+</button>
-                    <span className="text-xs text-[#49454F]">/ 24</span>
+                    <button onClick={()=>updateStatus(e.tmdbId, e.status, Math.min(e.totalEpisodes || 24, e.currentEpisode+1))} className="w-7 h-7 rounded-full bg-[#6750A4] text-white flex items-center justify-center text-sm font-bold disabled:opacity-40" disabled={e.currentEpisode >= (e.totalEpisodes || 24)}>+</button>
+                    <span className="text-xs text-[#49454F]">/ {e.totalEpisodes || 24}</span>
                   </div>
                 )}
 
                 {e.score && <div className="text-xs mt-1">Puan: <span className="font-bold">{e.score}/10</span></div>}
 
                 <div className="mt-auto pt-2">
-                  <div className="h-1.5 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-full overflow-hidden"><div className="h-full bg-[#6750A4] transition-all" style={{width: `${e.status==="COMPLETED"?100: e.format==="MOVIE"?0: Math.min(100, (e.currentEpisode/24)*100)}%`}}/></div>
+                  <div className="h-1.5 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-full overflow-hidden"><div className="h-full bg-[#6750A4] transition-all" style={{width: `${e.status==="COMPLETED"?100: e.format==="MOVIE"?0: Math.min(100, (e.currentEpisode/(e.totalEpisodes || 24))*100)}%`}}/></div>
                 </div>
               </div>
             </div>

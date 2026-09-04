@@ -78,7 +78,12 @@ export default function AnimeDetailPage() {
 
             <div className="flex flex-wrap gap-2 mt-5">
               <button onClick={()=>toggleWatch(data,"TV")} className={`h-11 px-6 rounded-full font-semibold inline-flex items-center gap-2 ${inList?"bg-[#6750A4] text-white":"bg-white text-black"}`}><ListPlus className="w-4 h-4"/>{inList?"Listemde":"Listeye Ekle"}</button>
-              <button onClick={()=> entry && updateStatus(data.id, entry.status==="WATCHING"?"COMPLETED":"WATCHING", entry.currentEpisode+1)} className="h-11 px-6 rounded-full bg-white/15 backdrop-blur border border-white/20 text-white font-semibold inline-flex items-center gap-2"><Heart className="w-4 h-4"/> {entry?.status==="WATCHING"?"Bölüm İlerlet":"İzlemeye Başla"}</button>
+              <button onClick={()=> {
+                if(!entry) return;
+                const max = entry.totalEpisodes || data.number_of_episodes || 24;
+                const next = Math.min(max, entry.currentEpisode+1);
+                updateStatus(data.id, entry.status==="WATCHING" && next>=max ? "COMPLETED" : entry.status==="WATCHING"?"WATCHING":"WATCHING", next);
+              }} className="h-11 px-6 rounded-full bg-white/15 backdrop-blur border border-white/20 text-white font-semibold inline-flex items-center gap-2"><Heart className="w-4 h-4"/> {entry?.status==="WATCHING"?"Bölüm İlerlet":"İzlemeye Başla"}</button>
               <button className="h-11 w-11 rounded-full bg-white/15 backdrop-blur border border-white/20 text-white flex items-center justify-center"><Share2 className="w-4 h-4"/></button>
             </div>
 
@@ -89,7 +94,12 @@ export default function AnimeDetailPage() {
                   <option value="WATCHING">Watching</option><option value="COMPLETED">Completed</option><option value="ON_HOLD">On Hold</option><option value="DROPPED">Dropped</option><option value="PLAN_TO_WATCH">Plan to Watch</option>
                 </select>
                 <span className="text-sm">Bölüm</span>
-                <input type="number" value={entry.currentEpisode} onChange={e=>updateStatus(data.id, entry.status, Number(e.target.value))} className="w-20 h-9 rounded-full bg-[#F3EDF7] px-3 text-sm border text-center"/>
+                <input type="number" min={0} max={data.number_of_episodes || 999} value={entry.currentEpisode} onChange={e=>{
+                  const v = Number(e.target.value);
+                  const max = data.number_of_episodes || entry.totalEpisodes || 24;
+                  const clamped = Math.max(0, Math.min(max, isNaN(v)?0:v));
+                  updateStatus(data.id, entry.status, clamped);
+                }} className="w-20 h-9 rounded-full bg-[#F3EDF7] px-3 text-sm border text-center"/>
                 <span className="text-sm">/ {data.number_of_episodes}</span>
               </div>
             )}

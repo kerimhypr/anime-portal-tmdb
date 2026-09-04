@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { Star, Play, Heart, Plus, Check } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { tmdbImage } from "@/lib/tmdb";
+import AddToListModal from "./AddToListModal";
 
 export default function AnimeCard({ item, format }: { item:any; format?: "tv"|"movie" }) {
   const inferred = format || (item.media_type==="movie" || item.title ? "movie" : "tv");
@@ -10,9 +12,14 @@ export default function AnimeCard({ item, format }: { item:any; format?: "tv"|"m
   const id = item.id;
   const title = item.name || item.title || item.original_name || item.original_title;
   const year = (item.first_air_date || item.release_date || "").slice(0,4);
-  const { watchlist, toggleWatch } = useStore();
+  const { watchlist } = useStore();
+  const [open, setOpen] = useState(false);
   const inList = watchlist.some(w=>w.tmdbId===id);
   const href = isMovie? `/movie/${id}` : `/anime/${id}`;
+  // genre display: map genre_ids to names if available, fallback to categories
+  const genreMap: Record<number,string> = {28:"Aksiyon",12:"Macera",16:"Animasyon",35:"Komedi",18:"Drama",14:"Fantastik",27:"Korku",10749:"Romantik",878:"Bilim Kurgu",53:"Gerilim",10765:"Fantastik",9648:"Gizem",10751:"Aile",36:"Tarih",99:"Belgesel"};
+  const genres: string[] = item.genres?.map((g:any)=> g.name) || item.genre_ids?.map((gid:number)=> genreMap[gid]).filter(Boolean) || [];
+  const displayGenres = genres.slice(0,2).join(" • ");
 
   return (
     <div className="group relative">
@@ -33,13 +40,14 @@ export default function AnimeCard({ item, format }: { item:any; format?: "tv"|"m
               <span className="bg-black/40 backdrop-blur px-2 py-1 rounded-full">{year || "—"}</span>
             </div>
             <div className="text-white font-semibold leading-tight line-clamp-2 text-[13px] drop-shadow">{title}</div>
-            <div className="text-white/70 text-xs truncate">{item.original_name || item.original_title || ""}</div>
+            <div className="text-white/70 text-xs truncate">{displayGenres || item.original_name || item.original_title || ""}</div>
           </div>
         </div>
       </Link>
-      <button onClick={(e)=>{ e.preventDefault(); toggleWatch(item, isMovie?"MOVIE":"TV"); }} className={`absolute -bottom-3 right-3 w-9 h-9 rounded-full shadow-m3-2 flex items-center justify-center transition ${inList?"bg-[#6750A4] text-white":"bg-white dark:bg-[#2B2930] text-[#6750A4] dark:text-white border border-[#E7E0EC] dark:border-[#49454F]"}`}>
+      <button onClick={(e)=>{ e.preventDefault(); setOpen(true); }} className={`absolute -bottom-3 right-3 w-9 h-9 rounded-full shadow-m3-2 flex items-center justify-center transition ${inList?"bg-[#6750A4] text-white":"bg-white dark:bg-[#2B2930] text-[#6750A4] dark:text-white border border-[#E7E0EC] dark:border-[#49454F]"}`}>
         {inList ? <Check className="w-4 h-4"/> : <Plus className="w-4 h-4"/>}
       </button>
+      <AddToListModal open={open} onClose={()=>setOpen(false)} anime={item} format={isMovie?"MOVIE":"TV"} />
     </div>
   );
 }
