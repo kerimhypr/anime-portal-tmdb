@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Play, Info, Star, Calendar, Clock, Plus, Check } from "lucide-react";
+import { Play, Info, Star, Plus, Check } from "lucide-react";
 import { tmdbImage } from "@/lib/tmdb";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
@@ -52,8 +52,7 @@ export default function Hero({ featured }: { featured:any[] }) {
           <img src={tmdbImage.poster(current.poster_path,"w500")} alt="" className="w-full aspect-[2/3] object-cover"/>
         </div>
         <div className="mt-3 bg-white/10 backdrop-blur rounded-2xl p-3 border border-white/15 text-white">
-          <div className="text-xs opacity-80 flex items-center gap-2"><Calendar className="w-3 h-3"/>{year} • <Clock className="w-3 h-3"/> 24dk</div>
-          <div className="text-sm font-semibold leading-tight mt-1">{title}</div>
+          <div className="text-sm font-semibold leading-tight">{title}</div>
         </div>
       </div>
     </div>
