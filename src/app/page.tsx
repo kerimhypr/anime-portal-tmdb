@@ -33,24 +33,24 @@ export default function HomePage() {
   async function load() {
     setLoading(true);
     try{
-      const [tr, popTv, popMv, topT, topM, air] = await Promise.all([
-        tmdb.trendingAnime(),
-        tmdb.discoverAnime(1, filters),
-        tmdb.discoverAnimeMovies(1, filters),
-        tmdb.topRatedTv(),
-        tmdb.topRatedMovies(),
+      const [popTv, popMv, topT, topM, air, hero] = await Promise.all([
+        tmdb.discoverAnime(1, { ...filters, sort: "popularity.desc" }),
+        tmdb.discoverAnimeMovies(1, { ...filters, sort: "popularity.desc" }),
+        tmdb.discoverAnime(1, { ...filters, sort: "vote_average.desc", voteGte: 7, voteCountGte: 200 }),
+        tmdb.discoverAnimeMovies(1, { ...filters, sort: "vote_average.desc", voteGte: 7, voteCountGte: 100 }),
         tmdb.onTheAir(),
+        tmdb.discoverAnime(1, { sort: "popularity.desc" }),
       ]);
-      // filter japanese-ish
-      const jp = (tr.results||[]).filter((x:any)=> x.original_language==="ja" || true).slice(0,6);
-      setTrending(jp.length? jp : (popTv.results||[]).slice(0,6));
+      // Hero: strict anime only – top popular anime
+      const heroAnime = (hero.results||[]).filter((x:any)=> x.original_language==="ja").slice(0,6);
+      setTrending(heroAnime.length? heroAnime : popTv.results.slice(0,6));
       setAnimePop(popTv.results||[]);
       setMoviePop(popMv.results||[]);
       setTopTv(topT.results||[]);
       setTopMovies(topM.results||[]);
-      // Yayın Akışı sadece anime TV – film bug fix
-      const animeAir = (air.results||[]).filter((x:any)=> x.original_language==="ja" || (x.genre_ids && x.genre_ids.includes(16)));
-      setOnAir(animeAir.length ? animeAir : (air.results||[]).filter((x:any)=> !x.title).slice(0,12));
+      // Yayın Akışı sadece anime TV – film bug fix (strict ja)
+      const animeAir = (air.results||[]).filter((x:any)=> x.original_language==="ja");
+      setOnAir(animeAir);
     }catch(e){ console.error(e); }
     setLoading(false);
   }

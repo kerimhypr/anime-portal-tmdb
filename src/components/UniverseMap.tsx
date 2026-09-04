@@ -4,7 +4,9 @@ import { tmdbImage } from "@/lib/tmdb";
 import { GitBranch, Film, Tv } from "lucide-react";
 
 export default function UniverseMap({ recommendations, similar, type }: { recommendations:any[]; similar:any[]; type:"tv"|"movie" }) {
-  const nodes = [...(recommendations||[]), ...(similar||[])].slice(0,8);
+  const all = [...(recommendations||[]), ...(similar||[])];
+  const animeNodes = all.filter((n:any)=> n.original_language==="ja" || n.original_language===undefined);
+  const nodes = (animeNodes.length ? animeNodes : all).slice(0,8);
   if(!nodes.length) return null;
   const relTypes: any[] = ["SEQUEL","PREQUEL","SPIN_OFF","MOVIE","RELATED"];
   return (

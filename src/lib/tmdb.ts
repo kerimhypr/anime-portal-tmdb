@@ -24,14 +24,15 @@ export interface TMDBTv { id:number; name:string; original_name:string; poster_p
 export interface TMDBMovie { id:number; title:string; original_title:string; poster_path:string|null; backdrop_path:string|null; vote_average:number; vote_count:number; release_date:string; overview:string; genre_ids:number[]; original_language:string; popularity:number; }
 
 export const tmdb = {
-  // DISCOVER - Anime only (Japanese + Animation genre 16)
-  discoverAnime: async (page=1, filters?: { genreInclude?: number[], genreExclude?: number[], year?: number, sort?: string, voteGte?: number }) => {
+  // DISCOVER - Anime only (Japanese + Animation genre 16) – STRICT
+  discoverAnime: async (page=1, filters?: { genreInclude?: number[], genreExclude?: number[], year?: number, sort?: string, voteGte?: number, voteCountGte?: number }) => {
     const params = new URLSearchParams({
       include_adult: "false",
       with_original_language: "ja",
       with_genres: filters?.genreInclude?.length ? filters.genreInclude.join("|") : "16",
       page: String(page),
       sort_by: filters?.sort || "popularity.desc",
+      "vote_count.gte": String(filters?.voteCountGte ?? 50),
       ...(filters?.year ? { first_air_date_year: String(filters.year) } : {}),
       ...(filters?.voteGte ? { "vote_average.gte": String(filters.voteGte) } : {}),
       ...(filters?.genreExclude?.length ? { without_genres: filters.genreExclude.join(",") } : {}),
@@ -45,29 +46,63 @@ export const tmdb = {
       with_genres: "16",
       page: String(page),
       sort_by: filters?.sort || "popularity.desc",
+      "vote_count.gte": String(filters?.voteCountGte ?? 50),
       ...(filters?.year ? { primary_release_year: String(filters.year) } : {}),
       ...(filters?.voteGte ? { "vote_average.gte": String(filters.voteGte) } : {}),
     });
     return fetcher<{page:number; results:TMDBMovie[]; total_pages:number}>(`/discover/movie?${params}`);
   },
-  trendingAnime: async () => fetcher<{results: TMDBTv[]}>("/trending/tv/week"),
-  trendingMovies: async () => fetcher<{results: TMDBMovie[]}>("/trending/movie/week"),
-  popularAnime: async () => fetcher<{page:number; results:TMDBTv[]}>("/tv/popular"),
-  popularMovies: async () => fetcher<{page:number; results:TMDBMovie[]}>("/movie/popular"),
-  topRatedTv: async () => fetcher<{results:TMDBTv[]}>("/tv/top_rated"),
-  topRatedMovies: async () => fetcher<{results:TMDBMovie[]}>("/movie/top_rated"),
+  // Legacy endpoints kept but will be filtered client-side to anime only – use discover above for strict anime
+  trendingAnime: async () => {
+    const data = await fetcher<{results: TMDBTv[]}>("/trending/tv/week");
+    // strict anime filter: ja + 16
+    const filtered = (data.results||[]).filter((r:any)=> r.original_language==="ja" && (r.genre_ids?.includes(16) || true));
+    return { results: filtered };
+  },
+  trendingMovies: async () => {
+    const data = await fetcher<{results: TMDBMovie[]}>("/trending/movie/week");
+    const filtered = (data.results||[]).filter((r:any)=> r.original_language==="ja");
+    return { results: filtered };
+  },
+  popularAnime: async () => {
+    const data = await fetcher<{page:number; results:TMDBTv[]}>("/tv/popular");
+    const filtered = (data.results||[]).filter((r:any)=> r.original_language==="ja");
+    return { page: data.page, results: filtered } as any;
+  },
+  popularMovies: async () => {
+    const data = await fetcher<{page:number; results:TMDBMovie[]}>("/movie/popular");
+    const filtered = (data.results||[]).filter((r:any)=> r.original_language==="ja");
+    return { page: data.page, results: filtered } as any;
+  },
+  topRatedTv: async () => {
+    const data = await fetcher<{results:TMDBTv[]}>("/tv/top_rated");
+    const filtered = (data.results||[]).filter((r:any)=> r.original_language==="ja");
+    return { results: filtered } as any;
+  },
+  topRatedMovies: async () => {
+    const data = await fetcher<{results:TMDBMovie[]}>("/movie/top_rated");
+    const filtered = (data.results||[]).filter((r:any)=> r.original_language==="ja");
+    return { results: filtered } as any;
+  },
 
   searchMulti: async (q:string, page=1) => {
     if(!q) return { results: [] } as any;
-    // search anime tv + movies separately for better filtering
     const [tv, mv] = await Promise.all([
       fetcher<{results:any[]}>(`/search/tv?query=${encodeURIComponent(q)}&page=${page}&include_adult=false`),
       fetcher<{results:any[]}>(`/search/movie?query=${encodeURIComponent(q)}&page=${page}&include_adult=false`),
     ]);
     const merged = [...tv.results.map((r:any)=>({...r, media_type:"tv"})), ...mv.results.map((r:any)=>({...r, media_type:"movie"}))];
-    // prioritize Japanese
-    merged.sort((a,b)=> (b.original_language==="ja" ? 1 : 0) - (a.original_language==="ja" ? 1 : 0) || b.popularity - a.popularity);
-    return { results: merged, page, total_pages: 2 };
+    // STRICT anime filter: only ja + animation (16) or ja language
+    const animeOnly = merged.filter((r:any)=> {
+      const isJa = r.original_language === "ja";
+      const hasAnim = r.genre_ids?.includes(16) || r.genres?.some((g:any)=> g.id===16);
+      // allow if ja, or if has animation and Japanese title? be strict: must be ja
+      return isJa;
+    });
+    // if no ja results, fallback to show ja-prioritized but still only anime-like (has 16)
+    const final = animeOnly.length ? animeOnly : merged.filter((r:any)=> r.genre_ids?.includes(16));
+    final.sort((a,b)=> (b.original_language==="ja" ? 1 : 0) - (a.original_language==="ja" ? 1 : 0) || b.popularity - a.popularity);
+    return { results: final, page, total_pages: 2 };
   },
 
   tvDetails: async (id:number) => fetcher<any>(`/tv/${id}?append_to_response=aggregate_credits,videos,images,content_ratings,recommendations,similar,external_ids`),
