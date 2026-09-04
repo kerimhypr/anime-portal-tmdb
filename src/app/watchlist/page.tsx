@@ -15,8 +15,8 @@ export default function WatchlistPage(){
     <div className="space-y-6">
       <div className="m3-card p-6 flex flex-wrap gap-4 items-center bg-gradient-to-r from-[#F3EDF7] to-[#EADDFF]/40 dark:from-[#211F26] dark:to-[#2B2930]">
         <div>
-          <h1 className="text-2xl font-black">Listem • Watch Progress Tracker</h1>
-          <p className="text-sm text-[#49454F] dark:text-[#CAC4D0]">{watchlist.length} kayıt • {stats.totalCompleted} tamamlandı • {stats.totalHours} saat • {stats.totalDays} gün</p>
+          <h1 className="text-2xl font-black">Takip Listem</h1>
+          <p className="text-sm text-[#49454F] dark:text-[#CAC4D0]">{watchlist.length} anime • {stats.totalCompleted} tamamlandı • {stats.totalHours} saat • {stats.totalDays} gün • Sadece senin izlediğin animeler</p>
         </div>
         <div className="ml-auto flex gap-1.5 overflow-x-auto">
           {tabs.map(t=>(

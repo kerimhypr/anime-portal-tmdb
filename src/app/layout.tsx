@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
                 <div className="flex gap-8 text-xs">
                   <div><div className="font-bold mb-2">Keşfet</div><div className="space-y-1 text-[#49454F] dark:text-[#CAC4D0]"><div>Trend</div><div>Takvim</div><div>Forum</div></div></div>
-                  <div><div className="font-bold mb-2">Hesap</div><div className="space-y-1 text-[#49454F] dark:text-[#CAC4D0]"><div>Profil</div><div>Listem</div><div>Ayarlar</div></div></div>
+                  <div><div className="font-bold mb-2">Hesap</div><div className="space-y-1 text-[#49454F] dark:text-[#CAC4D0]"><div>Profil</div><div>Takip Listem</div><div>Listelerim</div></div></div>
                   <div><div className="font-bold mb-2">Destek</div><div className="space-y-1 text-[#49454F] dark:text-[#CAC4D0]"><div>İçerik İsteği</div><div>Bildir</div><div>Gizlilik</div></div></div>
                 </div>
               </div>
