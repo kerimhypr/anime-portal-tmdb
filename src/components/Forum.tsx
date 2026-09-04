@@ -61,18 +61,32 @@ export default function Forum() {
   };
 
   const openThread = async (t:any) => {
-    // fetch fresh
-    const fresh = await getThread(t.id);
-    setSelected(fresh || t);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      const fresh = await getThread(t.id);
+      setSelected(fresh || t);
+      // push URL for shareable link without full navigation (keeps SPA)
+      if (typeof window !== "undefined") {
+        window.history.pushState({}, "", `/forum/${t.id}`);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e:any){
+      setSelected(t);
+    }
+  };
+  const closeThread = () => {
+    setSelected(null);
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/forum/")) {
+      window.history.pushState({}, "", "/forum");
+    }
   };
 
   if (selected) {
     return (
       <div className="m3-card overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-[#E7E0EC] dark:border-[#2B2930]">
-          <button onClick={()=> setSelected(null)} className="w-9 h-9 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] flex items-center justify-center"><ArrowLeft className="w-4 h-4"/></button>
+          <button onClick={closeThread} className="w-9 h-9 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] flex items-center justify-center"><ArrowLeft className="w-4 h-4"/></button>
           <div className="font-bold">Konuya Dön</div>
+          <a href={`/forum/${selected.id}`} onClick={(e)=> e.preventDefault()} className="ml-auto text-xs text-[#6750A4] underline hidden">Paylaş</a>
         </div>
         <div className="p-5">
           <div className="flex gap-3">
@@ -165,12 +179,13 @@ export default function Forum() {
                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${t.tag === "SPOILERS" ? "bg-[#BA1A1A] text-white" : t.tag === "NEWS" ? "bg-[#EADDFF] text-[#21005D]" : t.tag === "THEORY" ? "bg-[#6750A4] text-white" : "bg-[#F3EDF7] dark:bg-[#2B2930]"}`}>{TAGS[t.tag] || t.tag}</span>
                 <span className="text-xs text-[#49454F]">@{t.author?.username || t.author} • {t.created || t.createdAt?.slice?.(0,16)}</span>
               </div>
-              <div className="font-semibold leading-tight mt-1 hover:text-[#6750A4] line-clamp-2">{t.title}</div>
-              <div className="text-xs text-[#49454F] dark:text-[#CAC4D0] line-clamp-2 mt-1">{t.content?.slice(0,120)}</div>
+              <div onClick={()=> openThread(t)} className="font-semibold leading-tight mt-1 hover:text-[#6750A4] cursor-pointer line-clamp-2">{t.title}</div>
+              <div onClick={()=> openThread(t)} className="text-xs text-[#49454F] dark:text-[#CAC4D0] line-clamp-2 mt-1 cursor-pointer">{t.content?.slice(0,120)}</div>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-[#49454F] dark:text-[#CAC4D0]">
                 <span className="flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5" /> {t.replies || 0} yanıt</span>
                 <button onClick={(e)=>{e.stopPropagation(); handleLike(t);}} className="flex items-center gap-1 hover:text-[#6750A4]"><Heart className="w-3.5 h-3.5" /> {t.likes || 0}</button>
                 <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {(t.views || 0).toLocaleString("tr-TR")}</span>
+                <button onClick={(e)=>{e.stopPropagation(); openThread(t);}} className="ml-auto px-3 py-1 rounded-full bg-[#6750A4] text-white text-xs font-bold hover:bg-[#4F378B]">Görüntüle →</button>
               </div>
             </div>
           </div>

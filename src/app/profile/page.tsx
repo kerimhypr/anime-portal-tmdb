@@ -4,9 +4,10 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import AuthModal from "@/components/AuthModal";
 import { useEffect, useState } from "react";
-import { Share2, Settings, Award, LogIn, Save, Plus, Trash2, Lock, Globe, ListVideo } from "lucide-react";
+import { Share2, Settings, Award, LogIn, Save, Plus, Trash2, Lock, Globe, ListVideo, Star, Eye } from "lucide-react";
 import Link from "next/link";
 import { createCustomList, subscribeCustomLists, deleteCustomList } from "@/lib/firestore";
+import { tmdb, tmdbImage } from "@/lib/tmdb";
 
 export default function ProfilePage(){
   const { user, watchlist, stats } = useStore();
@@ -25,6 +26,8 @@ export default function ProfilePage(){
   const [newDesc,setNewDesc]=useState("");
   const [isPublic,setIsPublic]=useState(true);
   const [creating,setCreating]=useState(false);
+  const [expanded,setExpanded]=useState<string|null>(null);
+  const [expandedAnimes,setExpandedAnimes]=useState<Record<string, any[]>>({});
 
   useEffect(()=>{
     if(!fbUser) return;
@@ -63,6 +66,18 @@ export default function ProfilePage(){
     }catch(err:any){ alert(err.message); }
     finally{ setCreating(false); }
   };
+  const toggleExpand = async (list:any) => {
+    if (expanded === list.id) { setExpanded(null); return; }
+    setExpanded(list.id);
+    if (!expandedAnimes[list.id] && list.animeIds?.length) {
+      const ids:number[] = list.animeIds;
+      const details = await Promise.all(ids.map(async (aid)=>{
+        try { let d:any=null; try{ d=await tmdb.tvDetails(aid); d._format="tv"; }catch{ try{ d=await tmdb.movieDetails(aid); d._format="movie"; }catch{}}
+          return d; } catch{ return null; }
+      }));
+      setExpandedAnimes(prev=> ({ ...prev, [list.id]: details.filter(Boolean) }));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -76,7 +91,23 @@ export default function ProfilePage(){
             <div className="text-white/70 text-sm">@{user.username} • {user.badges.length} rozet • {stats.totalCompleted} tamamlandı • {fbUser.email}</div>
             <p className="text-white/80 text-sm mt-2 max-w-xl">{user.bio}</p>
             <div className="flex gap-2 mt-3">
-              <button onClick={()=>{ if(navigator.share) navigator.share({title:user.displayName, url:window.location.href}); else { navigator.clipboard.writeText(window.location.href); alert("Link kopyalandı"); } }} className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold inline-flex items-center gap-1.5"><Share2 className="w-4 h-4"/> Paylaş</button>
+              <button onClick={async()=>{
+                const shareUrl = window.location.origin + "/profile?user=" + encodeURIComponent(user.username);
+                const shareData = { title: `${user.displayName} • Anime Portal`, text: `${user.displayName} profiline göz at — ${user.bio}`, url: shareUrl };
+                try {
+                  if (navigator.share && navigator.canShare && navigator.canShare(shareData)) { await navigator.share(shareData); return; }
+                  if (navigator.share) { await navigator.share(shareData); return; }
+                } catch {}
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  alert("Profil linki kopyalandı: " + shareUrl);
+                } catch {
+                  const ta = document.createElement("textarea");
+                  ta.value = shareUrl; document.body.appendChild(ta); ta.select();
+                  try { document.execCommand("copy"); alert("Profil linki kopyalandı: " + shareUrl); } catch { prompt("Linki kopyala:", shareUrl); }
+                  document.body.removeChild(ta);
+                }
+              }} className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold inline-flex items-center gap-1.5"><Share2 className="w-4 h-4"/> Paylaş</button>
               <button onClick={()=>{ setDisplayName(appUser?.displayName||""); setBio(appUser?.bio||""); setAvatarUrl(appUser?.photoURL||""); setBannerUrl(appUser?.bannerUrl||""); setEdit(!edit); }} className="h-9 px-4 rounded-full bg-white/15 backdrop-blur border border-white/20 text-white text-sm font-medium inline-flex items-center gap-1.5"><Settings className="w-4 h-4"/> {edit?"İptal":"Düzenle"}</button>
             </div>
           </div>
@@ -132,22 +163,44 @@ export default function ProfilePage(){
             <div className="text-sm text-[#49454F] dark:text-[#CAC4D0] max-w-md mx-auto">Yukarıdaki formdan ilk listeni oluştur. Listelerine anime eklemek için herhangi bir anime kartındaki <span className="font-bold">+</span> ile listeye ekle, sonra profilinden yönet.</div>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+          <div className="space-y-3 mt-4">
             {customLists.map((l:any)=>(
-              <div key={l.id} className="rounded-2xl overflow-hidden border border-[#E7E0EC] dark:border-[#2B2930] bg-[#F3EDF7] dark:bg-[#211F26] flex flex-col">
-                <div className="h-2 bg-gradient-to-r from-[#6750A4] to-[#7D5260]"/>
-                <div className="p-4 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-bold leading-tight line-clamp-2">{l.title}</div>
-                    <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${l.isPublic?"bg-[#EADDFF] text-[#21005D]":"bg-white dark:bg-[#211F26] border"}`}>{l.isPublic ? <Globe className="w-3 h-3"/> : <Lock className="w-3 h-3"/>}{l.isPublic?"Açık":"Gizli"}</span>
+              <div key={l.id} className="rounded-2xl overflow-hidden border border-[#E7E0EC] dark:border-[#2B2930] bg-[#F3EDF7] dark:bg-[#211F26]">
+                <div className="h-1.5 bg-gradient-to-r from-[#6750A4] to-[#7D5260]"/>
+                <div className="p-4 flex gap-3 items-center">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${l.isPublic?"bg-[#EADDFF] text-[#21005D]":"bg-white dark:bg-[#211F26] border"}`}>{l.isPublic ? <Globe className="w-4 h-4"/> : <Lock className="w-4 h-4"/>}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold leading-tight truncate">{l.title}</div>
+                    <div className="text-xs text-[#49454F] dark:text-[#CAC4D0] truncate">{l.description || "Açıklama yok"} • {l.animeIds?.length||0} anime • {new Date(l.createdAt?.toDate?.() || l.createdAt || Date.now()).toLocaleDateString("tr-TR")}</div>
                   </div>
-                  <div className="text-xs text-[#49454F] dark:text-[#CAC4D0] mt-1 line-clamp-2">{l.description || "Açıklama yok"}</div>
-                  <div className="text-xs text-[#49454F] mt-2">{l.animeIds?.length||0} anime • {new Date(l.createdAt).toLocaleDateString("tr-TR")}</div>
+                  <button onClick={()=> toggleExpand(l)} className="px-4 h-9 rounded-full bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] text-sm font-semibold flex items-center gap-1.5"><Eye className="w-4 h-4"/>{expanded===l.id?"Gizle":"Görüntüle"}</button>
+                  <button onClick={async()=>{ if(confirm("Listeyi silmek istiyor musun?")) await deleteCustomList(l.id); }} className="w-9 h-9 rounded-full bg-white dark:bg-[#211F26] border flex items-center justify-center text-[#BA1A1A]"><Trash2 className="w-4 h-4"/></button>
                 </div>
-                <div className="p-3 pt-0 flex gap-2">
-                  <Link href={`/listelerim?open=${l.id}`} className="flex-1 h-8 rounded-full bg-[#6750A4] text-white text-xs font-semibold flex items-center justify-center">Görüntüle</Link>
-                  <button onClick={async()=>{ if(confirm("Listeyi silmek istiyor musun?")) await deleteCustomList(l.id); }} className="w-8 h-8 rounded-full bg-white dark:bg-[#211F26] border flex items-center justify-center text-[#BA1A1A]"><Trash2 className="w-4 h-4"/></button>
-                </div>
+                {expanded===l.id && (
+                  <div className="p-4 pt-0">
+                    {expandedAnimes[l.id] ? (
+                      expandedAnimes[l.id].length ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {expandedAnimes[l.id].map((a:any)=>{
+                            const isMovie = a._format==="movie" || !!a.title;
+                            return (
+                              <Link key={a.id} href={isMovie?`/movie/${a.id}`:`/anime/${a.id}`} className="group relative rounded-xl overflow-hidden bg-white dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F]">
+                                <img src={tmdbImage.poster(a.poster_path,"w342")} alt={a.name||a.title} className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition"/>
+                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                                  <div className="text-white text-xs font-semibold line-clamp-2">{a.name||a.title}</div>
+                                  <div className="text-white/70 text-[11px] flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400"/>{a.vote_average?.toFixed(1)}</div>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : <div className="py-6 text-center text-sm text-[#49454F]">Bu liste boş — + ile anime ekle.</div>
+                    ) : <div className="py-6 text-center text-sm text-[#49454F]">Yükleniyor...</div>}
+                    <div className="mt-3 flex gap-2">
+                      <Link href={`/listelerim?open=${l.id}`} className="text-xs font-semibold text-[#6750A4] hover:underline">Tam sayfada aç →</Link>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
