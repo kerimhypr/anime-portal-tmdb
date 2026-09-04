@@ -13,7 +13,7 @@ const nav = [
   { href:"/discover", label:"Ara", icon: Search },
   { href:"/calendar", label:"Yayın Akışı", icon: CalendarDays },
   { href:"/forum", label:"Topluluk", icon: MessageSquare },
-  { href:"/watchlist", label:"Takip Listem", icon: ListVideo },
+  { href:"/listelerim", label:"Listelerim", icon: ListVideo },
   { href:"/profile", label:"Profil", icon: User },
 ];
 
@@ -125,7 +125,7 @@ export default function Navbar() {
                         <div><div className="text-sm font-bold leading-none">{appUser?.displayName}</div><div className="text-xs text-[#49454F]">@{appUser?.username}</div><div className="text-[11px] text-[#79747E]">{fbUser.email}</div></div>
                       </div>
                       <Link href="/profile" onClick={()=>setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#F3EDF7] dark:hover:bg-[#2B2930] text-sm"><User className="w-4 h-4"/> Profil</Link>
-                      <Link href="/watchlist" onClick={()=>setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#F3EDF7] dark:hover:bg-[#2B2930] text-sm"><ListVideo className="w-4 h-4"/> Takip Listem</Link>
+                      <Link href="/listelerim" onClick={()=>setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#F3EDF7] dark:hover:bg-[#2B2930] text-sm"><ListVideo className="w-4 h-4"/> Listelerim</Link>
                       <button onClick={async()=>{ await logout(); setShowUserMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#FFD8E4] text-sm text-[#BA1A1A]"><LogOut className="w-4 h-4"/> Çıkış Yap</button>
                     </div>
                   )}
