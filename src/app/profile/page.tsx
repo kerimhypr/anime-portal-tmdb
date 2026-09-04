@@ -4,10 +4,12 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import AuthModal from "@/components/AuthModal";
 import { useEffect, useState } from "react";
-import { Share2, Settings, Award, LogIn, Save, Plus, Trash2, Lock, Globe, ListVideo, Star, Eye } from "lucide-react";
+import { Share2, Settings, Award, LogIn, Save, Plus, Trash2, Lock, Globe, ListVideo, Star, Eye, Upload, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { createCustomList, subscribeCustomLists, deleteCustomList } from "@/lib/firestore";
 import { tmdb, tmdbImage } from "@/lib/tmdb";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
 
 export default function ProfilePage(){
   const { user, watchlist, stats } = useStore();
@@ -19,6 +21,8 @@ export default function ProfilePage(){
   const [avatarUrl,setAvatarUrl]=useState(appUser?.photoURL||"");
   const [bannerUrl,setBannerUrl]=useState(appUser?.bannerUrl||"");
   const [saving,setSaving]=useState(false);
+  const [uploadingAvatar,setUploadingAvatar]=useState(false);
+  const [uploadingBanner,setUploadingBanner]=useState(false);
 
   // custom lists
   const [customLists,setCustomLists]=useState<any[]>([]);
@@ -54,6 +58,45 @@ export default function ProfilePage(){
       setEdit(false);
     }catch(e:any){ alert(e.message); }
     finally{ setSaving(false); }
+  };
+  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>)=>{
+    const file = e.target.files?.[0];
+    if(!file || !fbUser) return;
+    if(file.size > 2*1024*1024){ alert("Avatar için max 2MB (daha küçük seç)"); return; }
+    if(!file.type.startsWith("image/")){ alert("Sadece resim dosyası seç"); return; }
+    setUploadingAvatar(true);
+    try{
+      // Try Storage first, fallback to data URL (Storage henüz aktif değilse)
+      try{
+        const r = ref(storage, `avatars/${fbUser.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(r, file);
+        const url = await getDownloadURL(r);
+        setAvatarUrl(url);
+      } catch{
+        const reader = new FileReader();
+        reader.onload = () => setAvatarUrl(reader.result as string);
+        reader.readAsDataURL(file);
+      }
+    } finally{ setTimeout(()=> setUploadingAvatar(false), 800); }
+  };
+  const handleBannerFile = async (e: React.ChangeEvent<HTMLInputElement>)=>{
+    const file = e.target.files?.[0];
+    if(!file || !fbUser) return;
+    if(file.size > 3*1024*1024){ alert("Banner için max 3MB"); return; }
+    if(!file.type.startsWith("image/")){ alert("Sadece resim dosyası seç"); return; }
+    setUploadingBanner(true);
+    try{
+      try{
+        const r = ref(storage, `banners/${fbUser.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(r, file);
+        const url = await getDownloadURL(r);
+        setBannerUrl(url);
+      } catch{
+        const reader = new FileReader();
+        reader.onload = () => setBannerUrl(reader.result as string);
+        reader.readAsDataURL(file);
+      }
+    } finally{ setTimeout(()=> setUploadingBanner(false), 800); }
   };
 
   const handleCreateList = async(e:React.FormEvent)=>{
@@ -124,15 +167,46 @@ export default function ProfilePage(){
       </div>
 
       {edit && (
-        <div className="m3-card p-6 space-y-4">
-          <h3 className="font-bold flex items-center gap-2"><Settings className="w-5 h-5 text-[#6750A4]"/> Profili Düzenle</h3>
-          <div className="grid md:grid-cols-2 gap-3">
+        <div className="m3-card p-6 space-y-5">
+          <h3 className="font-bold flex items-center gap-2"><Settings className="w-5 h-5 text-[#6750A4]"/> Profili Düzenle — Fotoğraf Yükle</h3>
+          <div className="grid md:grid-cols-2 gap-4">
             <label className="block"><span className="text-xs font-semibold">Görünen Ad</span><input value={displayName} onChange={e=>setDisplayName(e.target.value)} className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
-            <label className="block"><span className="text-xs font-semibold">Avatar URL</span><input value={avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="https://..." className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
-            <label className="block"><span className="text-xs font-semibold">Banner URL</span><input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="https://..." className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
             <label className="block"><span className="text-xs font-semibold">Bio</span><input value={bio} onChange={e=>setBio(e.target.value)} className="mt-1 w-full h-11 rounded-xl bg-[#F3EDF7] dark:bg-[#2B2930] border px-3 text-sm"/></label>
           </div>
-          <button onClick={save} disabled={saving} className="m3-button inline-flex items-center gap-2 disabled:opacity-60"><Save className="w-4 h-4"/> {saving?"Kaydediliyor...":"Kaydet"}</button>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-[#E7E0EC] dark:border-[#49454F] p-4 bg-[#F3EDF7]/50 dark:bg-[#2B2930]/50">
+              <div className="text-xs font-bold flex items-center gap-1.5 mb-3"><ImageIcon className="w-4 h-4 text-[#6750A4]"/> Avatar Fotoğrafı</div>
+              <div className="flex gap-4 items-center">
+                <img src={avatarUrl || user.avatarUrl} alt="avatar preview" className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow flex-shrink-0"/>
+                <div className="flex-1 min-w-0">
+                  <label className={`inline-flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-sm cursor-pointer ${uploadingAvatar ? "bg-[#E8DEF8] text-[#49454F]" : "bg-[#6750A4] text-white hover:bg-[#4F378B]"} `}>
+                    <Upload className="w-4 h-4"/>{uploadingAvatar ? "Yükleniyor..." : "Dosya Seç"}
+                    <input type="file" accept="image/*" onChange={handleAvatarFile} className="hidden" disabled={uploadingAvatar}/>
+                  </label>
+                  <div className="text-[11px] text-[#49454F] dark:text-[#CAC4D0] mt-1">PNG/JPG/WebP, max 5MB. Seçince otomatik yüklenir.</div>
+                  <input value={avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="veya https:// ile URL yapıştır" className="mt-2 w-full h-9 rounded-xl bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] px-3 text-xs outline-none"/>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#E7E0EC] dark:border-[#49454F] p-4 bg-[#F3EDF7]/50 dark:bg-[#2B2930]/50">
+              <div className="text-xs font-bold flex items-center gap-1.5 mb-3"><ImageIcon className="w-4 h-4 text-[#6750A4]"/> Banner Fotoğrafı</div>
+              <div className="flex gap-4 items-center">
+                <img src={bannerUrl || user.bannerUrl} alt="banner preview" className="w-24 h-16 rounded-xl object-cover border-2 border-white shadow flex-shrink-0"/>
+                <div className="flex-1 min-w-0">
+                  <label className={`inline-flex items-center gap-2 px-4 h-10 rounded-full font-semibold text-sm cursor-pointer ${uploadingBanner ? "bg-[#E8DEF8] text-[#49454F]" : "bg-[#6750A4] text-white hover:bg-[#4F378B]"}`}>
+                    <Upload className="w-4 h-4"/>{uploadingBanner ? "Yükleniyor..." : "Dosya Seç"}
+                    <input type="file" accept="image/*" onChange={handleBannerFile} className="hidden" disabled={uploadingBanner}/>
+                  </label>
+                  <div className="text-[11px] text-[#49454F] dark:text-[#CAC4D0] mt-1">1200×400 önerilir, max 8MB</div>
+                  <input value={bannerUrl} onChange={e=>setBannerUrl(e.target.value)} placeholder="veya https:// ile URL yapıştır" className="mt-2 w-full h-9 rounded-xl bg-white dark:bg-[#211F26] border border-[#E7E0EC] dark:border-[#49454F] px-3 text-xs outline-none"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={save} disabled={saving || uploadingAvatar || uploadingBanner} className="m3-button inline-flex items-center gap-2 disabled:opacity-60"><Save className="w-4 h-4"/> {saving?"Kaydediliyor...":"Kaydet"}</button>
         </div>
       )}
 
