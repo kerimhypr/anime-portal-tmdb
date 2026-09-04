@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { MessageSquare, Pin, Eye, Heart, Search, Plus, LogIn } from "lucide-react";
-import { subscribeThreads, createThread } from "@/lib/firestore";
+import { MessageSquare, Pin, Eye, Heart, Search, Plus, ArrowLeft, Send, Trash2 } from "lucide-react";
+import { subscribeThreads, createThread, subscribeReplies, replyThread, likeThread, getThread } from "@/lib/firestore";
 import { useAuth } from "@/lib/auth";
 import AuthModal from "./AuthModal";
 
@@ -17,13 +17,24 @@ export default function Forum() {
   const [content, setContent] = useState("");
   const [tag, setTag] = useState("GENERAL");
   const [authOpen, setAuthOpen] = useState(false);
+  const [selected, setSelected] = useState<any | null>(null);
+  const [replies, setReplies] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [liking, setLiking] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeThreads(setThreads);
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    if (!selected) return;
+    const unsub = subscribeReplies(selected.id, setReplies);
+    return () => unsub();
+  }, [selected]);
+
   const filtered = threads.filter((t) => (active === "ALL" || t.tag === active) && t.title?.toLowerCase().includes(query.toLowerCase()));
+  const display = filtered;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +44,81 @@ export default function Forum() {
     setTitle(""); setContent(""); setShowNew(false);
   };
 
-  const display = filtered;
+  const handleLike = async (thread: any) => {
+    if (!user) { setAuthOpen(true); return; }
+    if (liking) return;
+    setLiking(true);
+    try { await likeThread(thread.id); } catch (e:any){ alert(e.message); }
+    finally { setLiking(false); }
+  };
+
+  const handleReply = async () => {
+    if (!replyText.trim()) return;
+    if (!user || !appUser) { setAuthOpen(true); return; }
+    if (!selected) return;
+    await replyThread(selected.id, appUser, replyText);
+    setReplyText("");
+  };
+
+  const openThread = async (t:any) => {
+    // fetch fresh
+    const fresh = await getThread(t.id);
+    setSelected(fresh || t);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  if (selected) {
+    return (
+      <div className="m3-card overflow-hidden">
+        <div className="p-4 flex items-center gap-3 border-b border-[#E7E0EC] dark:border-[#2B2930]">
+          <button onClick={()=> setSelected(null)} className="w-9 h-9 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] flex items-center justify-center"><ArrowLeft className="w-4 h-4"/></button>
+          <div className="font-bold">Konuya Dön</div>
+        </div>
+        <div className="p-5">
+          <div className="flex gap-3">
+            <img src={selected.author?.photoURL || `https://i.pravatar.cc/150?img=12`} alt="" className="w-10 h-10 rounded-full object-cover shrink-0"/>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${selected.tag==="SPOILERS"?"bg-[#BA1A1A] text-white": selected.tag==="THEORY"?"bg-[#6750A4] text-white":"bg-[#F3EDF7] dark:bg-[#2B2930]"}`}>{TAGS[selected.tag]||selected.tag}</span>
+                <span className="text-xs text-[#49454F]">@{selected.author?.username} • {selected.created}</span>
+              </div>
+              <h2 className="text-xl font-black leading-tight mt-2">{selected.title}</h2>
+              <p className="text-sm text-[#49454F] dark:text-[#CAC4D0] mt-3 whitespace-pre-wrap leading-relaxed">{selected.content}</p>
+              <div className="flex items-center gap-2 mt-4">
+                <button onClick={()=> handleLike(selected)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] hover:bg-[#EADDFF] text-sm font-medium"><Heart className="w-4 h-4"/> {selected.likes||0} Beğen</button>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm"><MessageSquare className="w-4 h-4"/> {replies.length} yanıt</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] text-sm"><Eye className="w-4 h-4"/> {selected.views||0}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <h3 className="font-bold flex items-center gap-2">Yanıtlar <span className="text-xs font-normal bg-[#E8DEF8] px-2 py-1 rounded-full">{replies.length}</span></h3>
+            {replies.length===0 ? <div className="p-6 text-center text-sm text-[#49454F] bg-[#F3EDF7]/50 dark:bg-[#2B2930]/50 rounded-2xl">Henüz yanıt yok — ilk yanıtı sen yaz!</div> :
+              replies.map((r:any)=>(
+                <div key={r.id} className="flex gap-3 p-3 rounded-2xl bg-[#F3EDF7] dark:bg-[#211F26] border border-[#E7E0EC]/50">
+                  <img src={r.author?.photoURL || `https://i.pravatar.cc/150?u=${r.author?.uid}`} alt="" className="w-8 h-8 rounded-full shrink-0 object-cover"/>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2"><span className="text-sm font-semibold">{r.author?.displayName || r.author?.username}</span><span className="text-xs text-[#79747E]">{new Date(r.createdAt).toLocaleString("tr-TR")}</span></div>
+                    <div className="text-sm mt-1 whitespace-pre-wrap">{r.content}</div>
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <img src={appUser?.photoURL || user?.photoURL || `https://i.pravatar.cc/300?img=68`} alt="" className="w-8 h-8 rounded-full hidden sm:block object-cover"/>
+            <div className="flex-1 flex gap-2">
+              <input value={replyText} onChange={e=> setReplyText(e.target.value)} onKeyDown={e=> e.key==="Enter" && handleReply()} placeholder={user? "Yanıt yaz... birbirinize cevap verin" : "Giriş yap ve yanıt yaz..."} className="flex-1 h-11 rounded-full bg-[#F3EDF7] dark:bg-[#2B2930] border border-[#E7E0EC] dark:border-[#49454F] px-4 text-sm outline-none focus:border-[#6750A4]"/>
+              <button onClick={handleReply} className="w-11 h-11 rounded-full bg-[#6750A4] text-white flex items-center justify-center shrink-0"><Send className="w-4 h-4"/></button>
+            </div>
+          </div>
+          {!user && <button onClick={()=> setAuthOpen(true)} className="mt-3 text-sm font-semibold text-[#6750A4] underline">Giriş yap ve katıl</button>}
+        </div>
+        <AuthModal open={authOpen} onClose={()=> setAuthOpen(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="m3-card overflow-hidden">
@@ -72,7 +157,7 @@ export default function Forum() {
 
       <div className="divide-y divide-[#F3EDF7] dark:divide-[#2B2930]">
         {display.map((t: any) => (
-          <div key={t.id} className={`p-4 hover:bg-[#F3EDF7]/50 dark:hover:bg-[#2B2930]/50 transition flex gap-3 ${t.isPinned ? "bg-[#FFF8E1] dark:bg-[#2B2930]" : ""}`}>
+          <div key={t.id} onClick={()=> openThread(t)} className={`p-4 hover:bg-[#F3EDF7]/50 dark:hover:bg-[#2B2930]/50 transition flex gap-3 cursor-pointer ${t.isPinned ? "bg-[#FFF8E1] dark:bg-[#2B2930]" : ""}`}>
             <img src={t.author?.photoURL || `https://i.pravatar.cc/150?img=${(parseInt(t.id.slice(-1)) || 5) + 10}`} alt="" className="w-9 h-9 rounded-full shrink-0 object-cover" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -80,11 +165,11 @@ export default function Forum() {
                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${t.tag === "SPOILERS" ? "bg-[#BA1A1A] text-white" : t.tag === "NEWS" ? "bg-[#EADDFF] text-[#21005D]" : t.tag === "THEORY" ? "bg-[#6750A4] text-white" : "bg-[#F3EDF7] dark:bg-[#2B2930]"}`}>{TAGS[t.tag] || t.tag}</span>
                 <span className="text-xs text-[#49454F]">@{t.author?.username || t.author} • {t.created || t.createdAt?.slice?.(0,16)}</span>
               </div>
-              <div className="font-semibold leading-tight mt-1 hover:text-[#6750A4] cursor-pointer line-clamp-2">{t.title}</div>
+              <div className="font-semibold leading-tight mt-1 hover:text-[#6750A4] line-clamp-2">{t.title}</div>
               <div className="text-xs text-[#49454F] dark:text-[#CAC4D0] line-clamp-2 mt-1">{t.content?.slice(0,120)}</div>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-[#49454F] dark:text-[#CAC4D0]">
                 <span className="flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5" /> {t.replies || 0} yanıt</span>
-                <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {t.likes || 0}</span>
+                <button onClick={(e)=>{e.stopPropagation(); handleLike(t);}} className="flex items-center gap-1 hover:text-[#6750A4]"><Heart className="w-3.5 h-3.5" /> {t.likes || 0}</button>
                 <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {(t.views || 0).toLocaleString("tr-TR")}</span>
               </div>
             </div>

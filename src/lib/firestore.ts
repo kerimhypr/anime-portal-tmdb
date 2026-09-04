@@ -122,6 +122,20 @@ export async function replyThread(threadId: string, author: any, content: string
   });
   await updateDoc(doc(db, "forumThreads", threadId), { replies: increment(1) });
 }
+export function subscribeReplies(threadId: string, cb: (items: any[]) => void) {
+  return onSnapshot(query(collection(db, "forumThreads", threadId, "replies"), orderBy("createdAt", "asc"), limit(100)), (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data(), createdAt: (d.data().createdAt?.toDate?.() || new Date()).toISOString() })));
+  });
+}
+export async function likeThread(threadId: string) {
+  await updateDoc(doc(db, "forumThreads", threadId), { likes: increment(1) });
+}
+export async function getThread(threadId: string) {
+  const snap = await getDoc(doc(db, "forumThreads", threadId));
+  if (!snap.exists()) return null;
+  const data = snap.data() as any;
+  return { id: snap.id, ...data, createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(), created: new Date(data.createdAt?.toDate?.() || Date.now()).toLocaleString("tr-TR") };
+}
 
 // ── Shoutbox ──
 export async function sendShout(author: any, text: string) {
